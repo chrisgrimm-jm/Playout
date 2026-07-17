@@ -126,19 +126,25 @@ button.hide{background:#262a32;color:var(--muted);}
     </div>
     <label for="cardText" style="margin-top:12px;">Text</label>
     <textarea id="cardText" placeholder="e.g. Who's the AL MVP at the break?"></textarea>
-    <label style="margin-top:14px;">Position &amp; size — drag the box to place it, slider to resize</label>
-    <div class="le-preview" id="lePreview">
-      <div class="le-ticker"></div>
-      <div class="le-box" id="leCard">QUESTION</div>
+    <div class="row" style="margin-top:14px;justify-content:space-between;">
+      <label style="margin:0;">Position &amp; size</label>
+      <button class="ghost" id="layoutToggle">Adjust ▾</button>
     </div>
-    <div class="row" style="margin-top:10px;">
-      <span class="hint" style="min-width:36px;">Size</span>
-      <input type="range" id="cardScale" min="0.5" max="2" step="0.05" value="1" style="flex:1;" />
-      <span class="hint" id="cardScaleVal" style="min-width:42px;text-align:right;">100%</span>
-      <button class="ghost" id="cardReset">Reset</button>
+    <div id="cardLayout">
+      <div class="hint" style="margin:2px 0 8px;">Drag the box to place it; slider resizes. Moves live on the overlay while the card is on screen.</div>
+      <div class="le-preview" id="lePreview">
+        <div class="le-ticker"></div>
+        <div class="le-box" id="leCard">QUESTION</div>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <span class="hint" style="min-width:36px;">Size</span>
+        <input type="range" id="cardScale" min="0.5" max="2" step="0.05" value="1" style="flex:1;" />
+        <span class="hint" id="cardScaleVal" style="min-width:42px;text-align:right;">100%</span>
+        <button class="ghost" id="cardReset">Reset</button>
+      </div>
     </div>
     <div class="row">
-      <div class="grow hint">Enter to show • Shift+Enter for a line break. Drag &amp; size update live on the overlay.</div>
+      <div class="grow hint">Enter to show • Shift+Enter for a line break.</div>
       <button class="hide" id="cardHide">HIDE</button>
       <button class="gold" id="cardShow">SHOW ON SCREEN ▸</button>
     </div>
@@ -330,6 +336,12 @@ $('cardShow').onclick=showCard;
 $('cardHide').onclick=()=>{ state.card.show=false; publish(); toast('Card hidden'); };
 $('cardText').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); showCard(); }});
 
+// throttled live publish so the overlay tracks the box as you drag/resize
+let _cardT=null, _cardPending=false;
+function publishCardLive(){
+  if(_cardT){ _cardPending=true; return; }
+  publish(); _cardT=setTimeout(()=>{ _cardT=null; if(_cardPending){ _cardPending=false; publish(); } }, 120);
+}
 let leDrag=false, leSX=0, leSY=0, leOX=0, leOY=0;
 $('leCard').addEventListener('pointerdown', e=>{
   leDrag=true; leSX=e.clientX; leSY=e.clientY; leOX=ncard('x'); leOY=ncard('y');
@@ -340,16 +352,25 @@ $('leCard').addEventListener('pointermove', e=>{
   const pv=$('lePreview').clientWidth/1920, s=ncard('scale');
   state.card.x = Math.round(clamp(leOX+(e.clientX-leSX)/pv, 0, Math.max(0,1920-CARD_W*s)));
   state.card.y = Math.round(clamp(leOY+(e.clientY-leSY)/pv, 0, Math.max(0,1080-CARD_H*s)));
-  renderLeBox();                     // live in the preview; overlay updates on release
+  renderLeBox(); publishCardLive();  // live: preview + overlay track the drag
 });
-function leEnd(){ if(leDrag){ leDrag=false; publish(); } }   // one publish on release
+function leEnd(){ if(leDrag){ leDrag=false; publish(); } }   // final exact publish
 $('leCard').addEventListener('pointerup', leEnd);
 $('leCard').addEventListener('pointercancel', leEnd);
 $('cardScale').addEventListener('input', e=>{ state.card.scale=parseFloat(e.target.value);
-  $('cardScaleVal').textContent=Math.round(state.card.scale*100)+'%'; renderLeBox(); });
-$('cardScale').addEventListener('change', ()=>publish());     // publish on slider release
+  $('cardScaleVal').textContent=Math.round(state.card.scale*100)+'%'; renderLeBox(); publishCardLive(); });
+$('cardScale').addEventListener('change', ()=>publish());
 $('cardReset').onclick=()=>{ Object.assign(state.card, CARD_DEF); syncCardEditor(); publish(); toast('Layout reset'); };
 window.addEventListener('resize', renderLeBox);
+
+// show/hide the positioning editor
+let layoutOpen = localStorage.getItem('podcast_layoutOpen') !== '0';
+function applyLayoutOpen(){
+  $('cardLayout').style.display = layoutOpen ? '' : 'none';
+  $('layoutToggle').textContent = layoutOpen ? 'Hide ▴' : 'Adjust ▾';
+  if(layoutOpen) renderLeBox();   // preview had 0 width while hidden — recompute now
+}
+$('layoutToggle').onclick=()=>{ layoutOpen=!layoutOpen; localStorage.setItem('podcast_layoutOpen', layoutOpen?'1':'0'); applyLayoutOpen(); };
 
 // ── TICKER messages ──
 function render(){
@@ -515,7 +536,7 @@ $('rssToggle').onclick = () => {
 };
 
 // ── init ──
-renderHosts(); buildFeedSelect(); syncCardEditor();
+renderHosts(); buildFeedSelect(); syncCardEditor(); applyLayoutOpen();
 { const f = chosenFeed(); if(!rss.url && f.url){ rss.url = f.url; rss.source = f.source; } }  // default to first preset
 updateRssUI();
 if(rss.on) startRss();
