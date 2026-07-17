@@ -36,7 +36,9 @@ textarea,input[type=text]{width:100%;background:var(--input);color:var(--ink);bo
   padding:11px 13px;font-size:15px;font-family:inherit;resize:vertical;}
 textarea{min-height:68px;line-height:1.4;}
 textarea::placeholder,input::placeholder{color:var(--subtle);}
-textarea:focus,input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+textarea:focus,input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+select{width:100%;background:var(--input);color:var(--ink);border:1px solid var(--line-strong);border-radius:9px;
+  padding:11px 13px;font-size:15px;font-family:inherit;cursor:pointer;}
 .row{display:flex;gap:10px;align-items:center;margin-top:14px;}
 .two{display:flex;gap:12px;}.two>div{flex:1;}
 .grow{flex:1;}
@@ -146,37 +148,15 @@ button.hide{background:#262a32;color:var(--muted);}
     <ul class="list" id="list"></ul>
   </div>
 
-  <!-- ── RSS FEEDS (optional) ── -->
+  <!-- ── NEWS FEED (single source, on/off) ── -->
   <div class="card">
-    <div class="card-title">RSS Feeds (optional)</div>
-    <label for="searchInput">Search a topic → add a live news feed</label>
-    <div class="urlbox">
-      <input type="text" id="searchInput" class="grow" placeholder="e.g. MLB news" />
-      <button class="gold" id="searchBtn">SEARCH ▸</button>
-    </div>
-    <label style="margin-top:18px;">Suggested feeds (click to add)</label>
-    <div class="tag-pick" id="presetPick"></div>
-    <label style="margin-top:18px;" for="feedUrlInput">Add your own RSS / Atom URL</label>
-    <div class="urlbox">
-      <input type="text" id="feedUrlInput" class="grow" placeholder="https://…/feed" />
-      <button id="addFeedBtn">ADD FEED</button>
-    </div>
-    <div class="row" style="justify-content:space-between;margin:18px 0 4px;">
-      <label style="margin:0;">Active feeds</label>
-      <div style="display:flex;gap:10px;align-items:center;">
-        <span class="hint" id="feedStatus"></span>
-        <button class="ghost" id="refreshFeeds">Refresh now</button>
-      </div>
-    </div>
-    <ul class="list" id="feedList"></ul>
-    <label style="margin-top:18px;" for="includeKw">Only show headlines matching (comma-separated — blank for all)</label>
-    <input type="text" id="includeKw" placeholder="e.g. Yankees, Mets, trade" />
-    <label style="margin-top:14px;" for="excludeKw">Hide headlines matching (optional)</label>
-    <input type="text" id="excludeKw" placeholder="e.g. betting, odds" />
-    <div class="settings" style="margin-top:16px;">
-      <div class="field" style="min-width:150px;"><label>Max headlines</label><input type="text" id="maxHeadlines" placeholder="25" /></div>
-      <div class="field" style="min-width:220px;"><label>Headline placement</label><button class="ghost" id="mixToggle" style="width:100%;">Off — after your messages</button></div>
-      <button class="gold" id="saveFeedCfg">SAVE</button>
+    <div class="card-title">News Feed <span class="live-pill" id="rssPill">Off</span></div>
+    <label for="feedSelect">Source</label>
+    <select id="feedSelect"></select>
+    <input type="text" id="customUrl" placeholder="https://…/feed" style="margin-top:10px;display:none;" />
+    <div class="row">
+      <div class="grow hint" id="rssStatus">Off — headlines won't show on the ticker.</div>
+      <button id="rssToggle">TURN ON ▸</button>
     </div>
   </div>
 
@@ -379,23 +359,17 @@ $('copyUrl').onclick=()=>{ $('obsUrl').select(); navigator.clipboard.writeText($
 $('saveTopic').onclick=()=>{ const t=$('topicInput').value.trim(); if(!t) return;
   topic=t; localStorage.setItem('podcast_topic', topic); updateUrl(); publish(); toast('Topic set'); };
 
-// ── RSS FEEDS (ported from ticker; writes state.ticker.feedItems) ──
-const FEEDS_KEY='podcast_feeds', MAXHL_KEY='podcast_maxhl', FILT_KEY='podcast_filters', MIX_KEY='podcast_mix';
+// ── NEWS FEED (single source, simple on/off) ──
+const RSS_KEY='podcast_rss', MAXHL=25;
 const PRESETS = [
   { title: 'MLB Trade Rumors', source: 'MLBTR', url: 'https://www.mlbtraderumors.com/feed' },
   { title: 'ESPN MLB',         source: 'ESPN',  url: 'https://www.espn.com/espn/rss/mlb/news' },
   { title: 'CBS Sports MLB',   source: 'CBS',   url: 'https://www.cbssports.com/rss/headlines/mlb/' },
   { title: 'Google News: MLB', source: 'NEWS',  url: 'https://news.google.com/rss/search?q=MLB&hl=en-US&gl=US&ceid=US:en' },
 ];
-let feeds = JSON.parse(localStorage.getItem(FEEDS_KEY) || 'null') || [];
-let maxHeadlines = parseInt(localStorage.getItem(MAXHL_KEY) || '25', 10);
-let filters = JSON.parse(localStorage.getItem(FILT_KEY) || 'null') || { include: [], exclude: [] };
-let mixMode = (localStorage.getItem(MIX_KEY) ?? '1') === '1';  // default ON so feed headlines interleave and hit air promptly
-state.ticker.mix = mixMode;
-const feedCache = {}, timers = {};
-
-function saveFeeds(){ localStorage.setItem(FEEDS_KEY, JSON.stringify(feeds)); }
-function parseKw(s){ return s.split(',').map(x => x.trim().toLowerCase()).filter(Boolean); }
+let rss = JSON.parse(localStorage.getItem(RSS_KEY) || 'null') || { url:'', source:'', on:false };
+let rssTimer = null;
+state.ticker.mix = true;   // headlines always interleave with your messages
 function hashId(s){ let h=0; for(let i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))|0; } return 'f'+(h>>>0).toString(36); }
 function hostOf(u){ try{ return new URL(u).hostname.replace(/^www\./,''); }catch{ return 'RSS'; } }
 
@@ -421,104 +395,63 @@ function parseFeed(xml){
     return { title, link, time };
   }).filter(x => x.title);
 }
-function matchesFilters(text){
-  const t = text.toLowerCase();
-  if(filters.include.length && !filters.include.some(k => t.includes(k))) return false;
-  if(filters.exclude.length &&  filters.exclude.some(k => t.includes(k))) return false;
-  return true;
+function saveRss(){ localStorage.setItem(RSS_KEY, JSON.stringify(rss)); }
+function setRssStatus(msg){ $('rssStatus').textContent = msg; }
+function updateRssUI(){
+  $('rssPill').className   = 'live-pill' + (rss.on ? ' on' : '');
+  $('rssPill').textContent = rss.on ? 'On air' : 'Off';
+  $('rssToggle').textContent = rss.on ? 'TURN OFF' : 'TURN ON ▸';
+  $('rssToggle').className    = rss.on ? 'hide' : '';
 }
-function rebuildAndPublish(){
-  const all = [];
-  for(const f of feeds){ if(f.enabled) all.push(...(feedCache[f.url] || [])); }
-  all.sort((a,b) => b.time - a.time);
-  const seenKeys = new Set(); const merged = [];
-  for(const it of all){
-    if(!matchesFilters(it.title)) continue;
-    const key = it.link || it.title; if(seenKeys.has(key)) continue; seenKeys.add(key);
-    merged.push({ id: hashId(key), text: it.title, tag: it.source });
-    if(merged.length >= maxHeadlines) break;
+// read the picked source (a preset, or the custom URL box)
+function chosenFeed(){
+  const sel = $('feedSelect');
+  if(sel.value === '__custom__'){
+    let u = $('customUrl').value.trim(); if(u && !/^https?:\/\//i.test(u)) u = 'https://' + u;
+    return { url: u, source: hostOf(u).slice(0,10).toUpperCase() };
   }
-  state.ticker.feedItems = merged; state.ticker.mix = mixMode; publish();
-  const on = feeds.filter(f => f.enabled).length;
-  setFeedStatus(`${merged.length} headline${merged.length===1?'':'s'} • ${on} feed${on===1?'':'s'} • ${new Date().toLocaleTimeString()}`);
+  const o = sel.options[sel.selectedIndex];
+  return { url: sel.value, source: (o && o.dataset.source) || hostOf(sel.value).slice(0,10).toUpperCase() };
 }
-async function fetchFeed(f, bulk){
-  if(!f.enabled){ delete feedCache[f.url]; if(!bulk) rebuildAndPublish(); return; }
-  try{ const items = parseFeed(await proxied(f.url)); f.err = items.length === 0;
-    feedCache[f.url] = items.map(it => ({ ...it, source: f.source }));
-  }catch(e){ f.err = true; feedCache[f.url] = feedCache[f.url] || []; }
-  saveFeeds(); if(!bulk){ renderFeeds(); rebuildAndPublish(); }
+async function fetchRss(){
+  if(!rss.on || !rss.url) return;
+  setRssStatus('Loading headlines…');
+  try{
+    const items = parseFeed(await proxied(rss.url)).slice(0, MAXHL);
+    state.ticker.feedItems = items.map(it => ({ id: hashId(it.link || it.title), text: it.title, tag: rss.source }));
+    setRssStatus(`${state.ticker.feedItems.length} headlines • updated ${new Date().toLocaleTimeString()}`);
+  }catch(e){ setRssStatus('Couldn’t reach that feed — try another source.'); }
+  publish();
 }
-async function refreshAllFeeds(){
-  setFeedStatus('Refreshing…');
-  await Promise.all(feeds.filter(f => f.enabled).map(f => fetchFeed(f, true)));
-  renderFeeds(); rebuildAndPublish();
+// the single on/off switch
+function startRss(){
+  if(rssTimer){ clearInterval(rssTimer); rssTimer = null; }
+  updateRssUI();
+  if(rss.on){ fetchRss(); rssTimer = setInterval(fetchRss, 5*60000); }   // auto-refresh every 5 min
+  else { state.ticker.feedItems = []; publish(); setRssStatus('Off — headlines won’t show on the ticker.'); }
 }
-function scheduleTimers(){
-  for(const url in timers){ clearInterval(timers[url]); delete timers[url]; }
-  feeds.forEach(f => { if(!f.enabled) return; const mins = Math.max(1, f.interval || 5);
-    timers[f.url] = setInterval(() => fetchFeed(f), mins * 60000); });
+function buildFeedSelect(){
+  const sel = $('feedSelect'); sel.innerHTML = '';
+  PRESETS.forEach(p => { const o = document.createElement('option'); o.value = p.url; o.textContent = p.title; o.dataset.source = p.source; sel.appendChild(o); });
+  const oc = document.createElement('option'); oc.value = '__custom__'; oc.textContent = 'Custom URL…'; sel.appendChild(oc);
+  if(rss.url && PRESETS.some(p => p.url === rss.url)) sel.value = rss.url;
+  else if(rss.url){ sel.value = '__custom__'; $('customUrl').value = rss.url; }
+  $('customUrl').style.display = sel.value === '__custom__' ? 'block' : 'none';
 }
-function setFeedStatus(msg){ $('feedStatus').textContent = msg; }
-function addFeed(feed){
-  if(!feed.url) return;
-  if(feeds.some(f => f.url === feed.url)){ toast('Feed already added'); return; }
-  const nf = { url: feed.url, title: feed.title || hostOf(feed.url), source: feed.source || hostOf(feed.url).slice(0,10).toUpperCase(), enabled: true, interval: 5 };
-  feeds.push(nf); saveFeeds(); renderFeeds(); scheduleTimers();
-  setFeedStatus('Loading headlines…'); fetchFeed(nf); toast('Feed added — loading headlines…');
-}
-function renderFeeds(){
-  const list = $('feedList'); if(list.contains(document.activeElement)) return;
-  list.innerHTML = '';
-  if(!feeds.length){ list.innerHTML = '<div class="empty">No feeds yet — search a topic, tap a suggestion, or paste a URL.</div>'; }
-  feeds.forEach(f => {
-    const li = document.createElement('li');
-    li.innerHTML = `<span class="tg" style="background:${f.err?'#E40000':'#00B13C'};color:#2B283A;"></span>
-      <span class="t"></span>
-      <input class="ivl" type="text" value="${f.interval||5}" title="Refresh interval (minutes)"
-        style="width:44px;background:#14161b;color:#c8ccd4;border:1px solid #3a3f4a;border-radius:6px;padding:6px 3px;font-family:inherit;font-size:12px;text-align:center;" />
-      <span class="hint" style="font-size:10px;">min</span>
-      <button class="ghost tgl" style="padding:4px 10px;font-size:12px;">${f.enabled?'On':'Off'}</button>
-      <button class="del" title="Remove">✕</button>`;
-    li.querySelector('.tg').textContent = f.source;
-    li.querySelector('.t').textContent = f.title + (f.err ? ' — unreachable' : '');
-    const ivl = li.querySelector('.ivl');
-    ivl.onchange = () => { const v = parseInt(ivl.value,10); if(Number.isFinite(v)){ f.interval = Math.max(1, Math.min(120, v)); ivl.value = f.interval; saveFeeds(); scheduleTimers(); } };
-    li.querySelector('.tgl').onclick = () => { f.enabled = !f.enabled; saveFeeds(); renderFeeds(); scheduleTimers(); fetchFeed(f); };
-    li.querySelector('.del').onclick  = () => { feeds = feeds.filter(x => x.url !== f.url); delete feedCache[f.url]; if(timers[f.url]){ clearInterval(timers[f.url]); delete timers[f.url]; } saveFeeds(); renderFeeds(); rebuildAndPublish(); };
-    list.appendChild(li);
-  });
-}
-function renderPresets(){ const box = $('presetPick'); box.innerHTML = '';
-  PRESETS.forEach(p => { const b = document.createElement('button'); b.textContent = p.title; b.onclick = () => addFeed(p); box.appendChild(b); }); }
-$('searchBtn').onclick = () => {
-  const q = $('searchInput').value.trim(); if(!q) return;
-  addFeed({ url: `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`, title: `Search: ${q}`, source: 'NEWS' });
-  $('searchInput').value = '';
+function pickFromUI(){ const f = chosenFeed(); rss.url = f.url; rss.source = f.source; saveRss(); if(rss.on) fetchRss(); }
+$('feedSelect').onchange = () => { $('customUrl').style.display = $('feedSelect').value === '__custom__' ? 'block' : 'none'; pickFromUI(); };
+$('customUrl').addEventListener('change', pickFromUI);
+$('rssToggle').onclick = () => {
+  if(!rss.on){ const f = chosenFeed(); if(!f.url){ toast('Pick a source first'); return; } rss.url = f.url; rss.source = f.source; }
+  rss.on = !rss.on; saveRss(); startRss(); toast(rss.on ? 'News feed on ▸' : 'News feed off');
 };
-$('searchInput').addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); $('searchBtn').click(); }});
-$('addFeedBtn').onclick = () => { let u = $('feedUrlInput').value.trim(); if(!u) return;
-  if(!/^https?:\/\//i.test(u)) u = 'https://' + u; addFeed({ url: u }); $('feedUrlInput').value = ''; };
-$('feedUrlInput').addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); $('addFeedBtn').click(); }});
-$('refreshFeeds').onclick = () => refreshAllFeeds();
-$('saveFeedCfg').onclick = () => {
-  const m = parseInt($('maxHeadlines').value, 10); if(Number.isFinite(m)) maxHeadlines = Math.max(1, Math.min(100, m));
-  localStorage.setItem(MAXHL_KEY, String(maxHeadlines)); $('maxHeadlines').value = maxHeadlines;
-  filters.include = parseKw($('includeKw').value); filters.exclude = parseKw($('excludeKw').value);
-  localStorage.setItem(FILT_KEY, JSON.stringify(filters)); rebuildAndPublish(); toast('Saved');
-};
-function updateMixBtn(){ const b = $('mixToggle');
-  b.textContent = mixMode ? 'On — mixed with your messages' : 'Off — after your messages';
-  b.style.background = mixMode ? 'rgba(34,197,94,.16)' : ''; b.style.color = mixMode ? '#5cd07f' : ''; }
-$('mixToggle').onclick = () => { mixMode = !mixMode; localStorage.setItem(MIX_KEY, mixMode ? '1' : '0'); updateMixBtn(); rebuildAndPublish(); };
 
 // ── init ──
-renderHosts(); renderPresets(); renderFeeds();
-$('maxHeadlines').value = maxHeadlines;
-$('includeKw').value = filters.include.join(', ');
-$('excludeKw').value = filters.exclude.join(', ');
-updateMixBtn(); scheduleTimers();
-if(feeds.length) refreshAllFeeds();
+renderHosts(); buildFeedSelect();
+{ const f = chosenFeed(); if(!rss.url && f.url){ rss.url = f.url; rss.source = f.source; } }  // default to first preset
+updateRssUI();
+if(rss.on) startRss();
+else setRssStatus('Off — headlines won’t show on the ticker.');
 render();
 
 // A fresh browser must not overwrite what's live on air. Adopt newer remote snapshot, then publish.
