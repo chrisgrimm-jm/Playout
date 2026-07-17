@@ -9,11 +9,11 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --bg:#f5f6f8; --card:#ffffff; --line:#e4e7ec; --line-strong:#d3d8e0;
-  --ink:#1f2430; --muted:#667085; --subtle:#98a2b3;
-  --primary:#1f2430; --primary-ink:#ffffff;
-  --accent:#2563eb; --accent-soft:#eff4ff;
-  --ok-bg:#e7f6ec; --ok-ink:#1a7f3c; --warn-bg:#fdf6d6; --warn-ink:#8a6d00;
+  --bg:#15171c; --card:#1d2027; --input:#14161b; --line:#2a2e36; --line-strong:#3a3f4a;
+  --ink:#e6e8ec; --muted:#9aa2b0; --subtle:#6d7480;
+  --primary:#e8eaee; --primary-ink:#15171c;
+  --accent:#3b82f6; --accent-soft:rgba(59,130,246,.18);
+  --ok-bg:rgba(34,197,94,.16); --ok-ink:#5cd07f; --warn-bg:rgba(250,204,21,.16); --warn-ink:#f5c542;
 }
 html,body{min-height:100%;background:var(--bg);color:var(--ink);
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
@@ -28,11 +28,11 @@ body{padding:32px 20px 64px;}
 .card-title{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:16px;
   display:flex;justify-content:space-between;align-items:center;gap:12px;}
 .live-pill{font-size:11px;font-weight:600;letter-spacing:.02em;padding:3px 10px;border-radius:999px;
-  background:#eef1f5;color:var(--muted);}
+  background:#262a32;color:var(--muted);}
 .live-pill.on{background:var(--ok-bg);color:var(--ok-ink);}
 .live-pill.on-gold{background:var(--warn-bg);color:var(--warn-ink);}
 label{display:block;font-size:11px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);margin-bottom:7px;}
-textarea,input[type=text]{width:100%;background:var(--card);color:var(--ink);border:1px solid var(--line-strong);border-radius:9px;
+textarea,input[type=text]{width:100%;background:var(--input);color:var(--ink);border:1px solid var(--line-strong);border-radius:9px;
   padding:11px 13px;font-size:15px;font-family:inherit;resize:vertical;}
 textarea{min-height:68px;line-height:1.4;}
 textarea::placeholder,input::placeholder{color:var(--subtle);}
@@ -51,13 +51,13 @@ button:hover{filter:brightness(1.08);}
 button.ghost{background:var(--card);border:1px solid var(--line-strong);color:var(--muted);font-weight:500;padding:8px 14px;}
 button.ghost:hover{border-color:var(--subtle);filter:none;}
 button.gold{background:var(--accent);color:#fff;}
-button.hide{background:#f1f3f6;color:var(--muted);}
+button.hide{background:#262a32;color:var(--muted);}
 .hint{font-size:12px;color:var(--subtle);line-height:1.4;}
 .list{list-style:none;}
 .list li{display:flex;align-items:center;gap:11px;padding:10px 12px;border:1px solid var(--line);
   border-radius:9px;margin-bottom:8px;background:var(--card);}
 .list .num{color:var(--subtle);font-weight:600;font-size:13px;min-width:22px;text-align:center;}
-.list .tg{font-size:11px;font-weight:600;letter-spacing:.02em;color:#3730a3;background:#eef2ff;padding:2px 8px;border-radius:5px;}
+.list .tg{font-size:11px;font-weight:600;letter-spacing:.02em;color:#a5b4fc;background:rgba(99,102,241,.18);padding:2px 8px;border-radius:5px;}
 .list .t{flex:1;font-size:14px;word-break:break-word;}
 .list .del{background:transparent;border:none;color:var(--subtle);font-size:17px;padding:2px 8px;cursor:pointer;}
 .list .del:hover{color:#e11d48;filter:none;}
@@ -72,8 +72,8 @@ button.hide{background:#f1f3f6;color:var(--muted);}
 .urlbox{display:flex;gap:8px;margin-top:6px;}
 .urlbox input{font-size:13px;color:var(--muted);}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(90px);
-  background:var(--primary);color:#fff;font-size:14px;font-weight:600;
-  padding:11px 22px;border-radius:999px;box-shadow:0 8px 24px rgba(16,24,40,.18);transition:transform .25s ease;z-index:50;}
+  background:#2a2e36;color:var(--ink);font-size:14px;font-weight:600;border:1px solid var(--line-strong);
+  padding:11px 22px;border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.4);transition:transform .25s ease;z-index:50;}
 .toast.show{transform:translateX(-50%) translateY(0);}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--subtle);margin-right:7px;vertical-align:middle;}
 .dot.ok{background:#16a34a;}
@@ -450,7 +450,7 @@ function renderFeeds(){
     li.innerHTML = `<span class="tg" style="background:${f.err?'#E40000':'#00B13C'};color:#2B283A;"></span>
       <span class="t"></span>
       <input class="ivl" type="text" value="${f.interval||5}" title="Refresh interval (minutes)"
-        style="width:44px;background:#fff;color:#374151;border:1px solid #d3d8e0;border-radius:6px;padding:6px 3px;font-family:inherit;font-size:12px;text-align:center;" />
+        style="width:44px;background:#14161b;color:#c8ccd4;border:1px solid #3a3f4a;border-radius:6px;padding:6px 3px;font-family:inherit;font-size:12px;text-align:center;" />
       <span class="hint" style="font-size:10px;">min</span>
       <button class="ghost tgl" style="padding:4px 10px;font-size:12px;">${f.enabled?'On':'Off'}</button>
       <button class="del" title="Remove">✕</button>`;
@@ -483,7 +483,7 @@ $('saveFeedCfg').onclick = () => {
 };
 function updateMixBtn(){ const b = $('mixToggle');
   b.textContent = mixMode ? 'On — mixed with your messages' : 'Off — after your messages';
-  b.style.background = mixMode ? '#e7f6ec' : ''; b.style.color = mixMode ? '#1a7f3c' : ''; }
+  b.style.background = mixMode ? 'rgba(34,197,94,.16)' : ''; b.style.color = mixMode ? '#5cd07f' : ''; }
 $('mixToggle').onclick = () => { mixMode = !mixMode; localStorage.setItem(MIX_KEY, mixMode ? '1' : '0'); updateMixBtn(); rebuildAndPublish(); };
 
 // ── init ──
