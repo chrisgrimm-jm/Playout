@@ -274,7 +274,7 @@ function renderHosts(){
     b.onclick = (e) => {
       if(e.target.classList.contains('x')){ hosts.splice(i,1); localStorage.setItem(HOSTS_KEY,JSON.stringify(hosts)); renderHosts(); return; }
       $('ltName').value = h.name; $('ltRole').value = h.role || '';
-      state.lt = { name:h.name, role:h.role||'', show:true }; publish(); toast('Lower third live ▸');
+      state.lt = { name:h.name, role:h.role||'', show:true }; state.card.show=false; publish(); toast('Lower third live ▸');
     };
     box.appendChild(b);
   });
@@ -286,6 +286,7 @@ $('ltSaveHost').onclick = () => {
 };
 $('ltShow').onclick = () => {
   state.lt = { name:$('ltName').value.trim(), role:$('ltRole').value.trim(), show:true };
+  state.card.show=false;            // hide any on-screen question — they share the bottom band
   publish(); toast('Lower third live ▸');
 };
 $('ltHide').onclick = () => { state.lt.show = false; publish(); toast('Lower third hidden'); };
@@ -298,7 +299,9 @@ $('kindPick').querySelectorAll('button').forEach((b,idx)=>{
 });
 function showCard(){
   const text=$('cardText').value.trim(); if(!text) return;
-  state.card={ kind:state.card.kind||'TOPIC', text, show:true }; publish(); toast('On screen ▸');
+  state.card={ kind:state.card.kind||'TOPIC', text, show:true };
+  state.lt.show=false;              // question and lower third share the bottom band — show one at a time
+  publish(); toast('On screen ▸');
 }
 $('cardShow').onclick=showCard;
 $('cardHide').onclick=()=>{ state.card.show=false; publish(); toast('Card hidden'); };
