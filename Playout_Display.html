@@ -15,7 +15,7 @@ body{font-family:'Sofia Sans Semi Condensed',sans-serif;}
 
 /* ── LOWER THIRD (host name card) ── */
 #lt{
-  position:fixed;left:60px;bottom:110px;z-index:5;
+  position:fixed;left:60px;bottom:122px;z-index:5;
   display:flex;flex-direction:column;
   background:#2B283A;border-left:6px solid #E40000;
   padding:16px 30px 16px 24px;min-width:340px;
@@ -31,26 +31,36 @@ body{font-family:'Sofia Sans Semi Condensed',sans-serif;}
 
 /* ── TOPIC / QUESTION CARD ── */
 #card{
-  position:fixed;left:50%;bottom:98px;transform:translateX(-50%) translateY(18px);z-index:6;
-  width:min(1100px,72vw);text-align:center;opacity:0;pointer-events:none;
-  transition:transform .4s cubic-bezier(.16,1,.3,1),opacity .4s ease;
+  position:fixed;left:50%;z-index:6;width:min(1100px,72vw);text-align:center;
+  opacity:0;pointer-events:none;
+  transition:opacity .4s ease, transform .4s cubic-bezier(.16,1,.3,1);
 }
-#card.show{transform:translateX(-50%) translateY(0);opacity:1;}
-#card .kind{display:inline-block;font-family:'Bebas Neue',sans-serif;font-size:24px;
-  letter-spacing:6px;color:#2B283A;background:#E40000;padding:6px 22px;border-radius:3px;margin-bottom:14px;}
+#card.show{opacity:1;}
+/* position (set from the control page) */
+#card.pos-bottom{bottom:118px;transform:translateX(-50%) translateY(18px);}
+#card.pos-bottom.show{transform:translateX(-50%) translateY(0);}
+#card.pos-center{top:50%;transform:translate(-50%,calc(-50% + 18px));}
+#card.pos-center.show{transform:translate(-50%,-50%);}
+#card.pos-top{top:13%;transform:translateX(-50%) translateY(18px);}
+#card.pos-top.show{transform:translateX(-50%) translateY(0);}
+#card .kind{display:inline-block;font-family:'Bebas Neue',sans-serif;font-size:26px;
+  letter-spacing:6px;color:#2B283A;background:#E40000;padding:6px 22px;border-radius:3px;margin-bottom:16px;}
 #card .kind.question{background:#FCFF7A;}
-#card .body{font-family:'Bebas Neue',sans-serif;font-style:italic;font-size:64px;line-height:1.02;letter-spacing:1px;
+#card .body{font-family:'Bebas Neue',sans-serif;font-style:italic;font-size:74px;line-height:1.02;letter-spacing:1px;
   color:#fff;text-shadow:0 6px 30px rgba(0,0,0,.7);}
+/* size (set from the control page) */
+#card.size-s .body{font-size:54px;}
+#card.size-l .body{font-size:98px;}
 
 /* ── TICKER (bottom bar) ── */
 #bar{
-  position:fixed;left:0;right:0;bottom:0;height:72px;
+  position:fixed;left:0;right:0;bottom:0;height:92px;
   display:flex;align-items:stretch;background:#2B283A;
-  border-top:2px solid #E40000;z-index:8;
+  border-top:3px solid #E40000;z-index:8;
 }
 #label{
-  flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:0 26px;
-  font-family:'Bebas Neue',sans-serif;font-style:italic;font-size:30px;letter-spacing:4px;color:#fff;
+  flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:0 30px;
+  font-family:'Bebas Neue',sans-serif;font-style:italic;font-size:38px;letter-spacing:4px;color:#fff;
   white-space:nowrap;z-index:3;background:#1A1823;border-right:1px solid #3A3749;
 }
 #label .live-dot{width:9px;height:9px;border-radius:50%;background:#E40000;
@@ -62,12 +72,12 @@ body{font-family:'Sofia Sans Semi Condensed',sans-serif;}
 
 #viewport{position:relative;flex:1 1 auto;overflow:hidden;background:#2B283A;}
 #track{position:absolute;top:0;left:0;height:100%;white-space:nowrap;will-change:transform;}
-.item{display:inline-flex;align-items:center;height:72px;font-family:'Sofia Sans Semi Condensed',sans-serif;
-  font-weight:500;font-size:27px;letter-spacing:.3px;color:#fff;vertical-align:top;}
-.item .tag{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;
-  color:#2B283A;background:#E40000;padding:4px 12px;margin-right:16px;border-radius:2px;}
+.item{display:inline-flex;align-items:center;height:92px;font-family:'Sofia Sans Semi Condensed',sans-serif;
+  font-weight:500;font-size:35px;letter-spacing:.3px;color:#fff;vertical-align:top;}
+.item .tag{font-family:'Bebas Neue',sans-serif;font-size:25px;letter-spacing:3px;
+  color:#2B283A;background:#E40000;padding:4px 13px;margin-right:18px;border-radius:2px;}
 .item.fresh .txt{color:#fff;}
-.sep{color:#E40000;font-size:14px;padding:0 30px;}
+.sep{color:#E40000;font-size:17px;padding:0 34px;}
 #viewport::before,#viewport::after{content:"";position:absolute;top:0;bottom:0;width:50px;z-index:2;pointer-events:none;}
 #viewport::before{left:0;background:linear-gradient(90deg,#2B283A,transparent);}
 #viewport::after{right:0;background:linear-gradient(270deg,#2B283A,transparent);}
@@ -140,6 +150,8 @@ function applyState(state){
   kindEl.textContent = card.kind || 'TOPIC';
   kindEl.classList.toggle('question', (card.kind||'').toUpperCase()==='QUESTION');
   cardEl.querySelector('.body').textContent = card.text || '';
+  cardEl.classList.remove('pos-bottom','pos-center','pos-top','size-s','size-m','size-l');
+  cardEl.classList.add('pos-' + (card.pos || 'bottom'), 'size-' + (card.size || 'm'));
   cardEl.classList.toggle('show', !!card.show && !!card.text);
 
   // ── ticker ──

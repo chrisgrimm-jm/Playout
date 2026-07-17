@@ -117,8 +117,26 @@ button.hide{background:#262a32;color:var(--muted);}
     </div>
     <label for="cardText" style="margin-top:12px;">Text</label>
     <textarea id="cardText" placeholder="e.g. Who's the AL MVP at the break?"></textarea>
+    <div class="two" style="margin-top:12px;">
+      <div>
+        <label for="cardPos">Position</label>
+        <select id="cardPos">
+          <option value="bottom">Above the ticker</option>
+          <option value="center">Center screen</option>
+          <option value="top">Upper third</option>
+        </select>
+      </div>
+      <div>
+        <label for="cardSize">Size</label>
+        <select id="cardSize">
+          <option value="s">Small</option>
+          <option value="m">Medium</option>
+          <option value="l">Large</option>
+        </select>
+      </div>
+    </div>
     <div class="row">
-      <div class="grow hint">Enter to show • Shift+Enter for a line break.</div>
+      <div class="grow hint">Enter to show • Shift+Enter for a line break. Position &amp; size update live.</div>
       <button class="hide" id="cardHide">HIDE</button>
       <button class="gold" id="cardShow">SHOW ON SCREEN ▸</button>
     </div>
@@ -151,12 +169,7 @@ button.hide{background:#262a32;color:var(--muted);}
   <!-- ── NEWS FEED (single source, on/off) ── -->
   <div class="card">
     <div class="card-title">News Feed <span class="live-pill" id="rssPill">Off</span></div>
-    <label for="searchInput">Search a topic → live news feed</label>
-    <div class="urlbox">
-      <input type="text" id="searchInput" class="grow" placeholder="e.g. Yankees, MLB trade deadline" />
-      <button class="gold" id="searchBtn">SEARCH</button>
-    </div>
-    <label for="feedSelect" style="margin-top:16px;">Or pick a source</label>
+    <label for="feedSelect">Source</label>
     <select id="feedSelect"></select>
     <input type="text" id="customUrl" placeholder="https://…/feed" style="margin-top:10px;display:none;" />
     <div class="row">
@@ -265,7 +278,9 @@ function renderHosts(){
     b.onclick = (e) => {
       if(e.target.classList.contains('x')){ hosts.splice(i,1); localStorage.setItem(HOSTS_KEY,JSON.stringify(hosts)); renderHosts(); return; }
       $('ltName').value = h.name; $('ltRole').value = h.role || '';
-      state.lt = { name:h.name, role:h.role||'', show:true }; state.card.show=false; publish(); toast('Lower third live ▸');
+      state.lt = { name:h.name, role:h.role||'', show:true };
+      if((state.card.pos||'bottom')==='bottom') state.card.show=false;
+      publish(); toast('Lower third live ▸');
     };
     box.appendChild(b);
   });
@@ -277,7 +292,7 @@ $('ltSaveHost').onclick = () => {
 };
 $('ltShow').onclick = () => {
   state.lt = { name:$('ltName').value.trim(), role:$('ltRole').value.trim(), show:true };
-  state.card.show=false;            // hide any on-screen question — they share the bottom band
+  if((state.card.pos||'bottom')==='bottom') state.card.show=false;   // only hide a question sharing the bottom band
   publish(); toast('Lower third live ▸');
 };
 $('ltHide').onclick = () => { state.lt.show = false; publish(); toast('Lower third hidden'); };
@@ -290,13 +305,23 @@ $('kindPick').querySelectorAll('button').forEach((b,idx)=>{
 });
 function showCard(){
   const text=$('cardText').value.trim(); if(!text) return;
-  state.card={ kind:state.card.kind||'TOPIC', text, show:true };
-  state.lt.show=false;              // question and lower third share the bottom band — show one at a time
+  state.card={ kind:state.card.kind||'TOPIC', text, show:true, pos:$('cardPos').value, size:$('cardSize').value };
+  if($('cardPos').value==='bottom') state.lt.show=false;   // only the bottom band overlaps the lower third
   publish(); toast('On screen ▸');
 }
 $('cardShow').onclick=showCard;
 $('cardHide').onclick=()=>{ state.card.show=false; publish(); toast('Card hidden'); };
 $('cardText').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); showCard(); }});
+// position/size update live — even while the card is on screen
+function applyCardLayout(){
+  state.card.pos=$('cardPos').value; state.card.size=$('cardSize').value;
+  if(state.card.show && state.card.pos==='bottom') state.lt.show=false;
+  publish();
+}
+$('cardPos').onchange=applyCardLayout;
+$('cardSize').onchange=applyCardLayout;
+$('cardPos').value=state.card.pos||'bottom';
+$('cardSize').value=state.card.size||'m';
 
 // ── TICKER messages ──
 function render(){
@@ -447,33 +472,15 @@ function startRss(){
 }
 function buildFeedSelect(){
   const sel = $('feedSelect'); sel.innerHTML = '';
-  if(rss.query){ const o = document.createElement('option'); o.value = rss.url; o.textContent = `Search: ${rss.query}`; o.dataset.source = 'NEWS'; sel.appendChild(o); }
   PRESETS.forEach(p => { const o = document.createElement('option'); o.value = p.url; o.textContent = p.title; o.dataset.source = p.source; sel.appendChild(o); });
   const oc = document.createElement('option'); oc.value = '__custom__'; oc.textContent = 'Custom URL…'; sel.appendChild(oc);
-  if(rss.query) sel.value = rss.url;
-  else if(rss.url && PRESETS.some(p => p.url === rss.url)) sel.value = rss.url;
+  if(rss.url && PRESETS.some(p => p.url === rss.url)) sel.value = rss.url;
   else if(rss.url){ sel.value = '__custom__'; $('customUrl').value = rss.url; }
   $('customUrl').style.display = sel.value === '__custom__' ? 'block' : 'none';
 }
 function pickFromUI(){ const f = chosenFeed(); rss.url = f.url; rss.source = f.source; saveRss(); if(rss.on) fetchRss(); }
-$('feedSelect').onchange = () => {
-  const sel = $('feedSelect'), opt = sel.options[sel.selectedIndex];
-  if(!opt || !/^Search:/.test(opt.textContent)) rss.query = '';   // left the search entry
-  $('customUrl').style.display = sel.value === '__custom__' ? 'block' : 'none';
-  pickFromUI();
-};
+$('feedSelect').onchange = () => { $('customUrl').style.display = $('feedSelect').value === '__custom__' ? 'block' : 'none'; pickFromUI(); };
 $('customUrl').addEventListener('change', pickFromUI);
-function searchFeed(){
-  const q = $('searchInput').value.trim(); if(!q) return;
-  rss.url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`;
-  rss.source = 'NEWS'; rss.query = q; saveRss();
-  buildFeedSelect();                 // adds + selects the "Search: q" entry
-  $('searchInput').value = '';
-  if(rss.on){ fetchRss(); toast('Feed set — loading…'); }
-  else { setRssStatus(`Ready: “${q}” — press Turn On.`); toast('Feed set — press Turn On'); }
-}
-$('searchBtn').onclick = searchFeed;
-$('searchInput').addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); searchFeed(); }});
 $('rssToggle').onclick = () => {
   if(!rss.on){ const f = chosenFeed(); if(!f.url){ toast('Pick a source first'); return; } rss.url = f.url; rss.source = f.source; }
   rss.on = !rss.on; saveRss(); startRss(); toast(rss.on ? 'News feed on ▸' : 'News feed off');
@@ -504,6 +511,7 @@ fbRef(topic).once('value').then(snap => {
     }
     $('ltName').value = state.lt.name||''; $('ltRole').value = state.lt.role||'';
     $('cardText').value = state.card.text||'';
+    $('cardPos').value = state.card.pos||'bottom'; $('cardSize').value = state.card.size||'m';
     render();
   }
   publish();
