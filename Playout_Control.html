@@ -62,6 +62,12 @@ button.hide{background:#262a32;color:var(--muted);}
 .list .del{background:transparent;border:none;color:var(--subtle);font-size:17px;padding:2px 8px;cursor:pointer;}
 .list .del:hover{color:#e11d48;filter:none;}
 .empty{color:var(--subtle);font-size:14px;padding:6px 2px;}
+.list li.subhead{background:transparent;border:none;padding:16px 2px 6px;margin:0;
+  font-size:11px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);
+  display:flex;justify-content:space-between;align-items:center;}
+.list li.subhead .cnt{background:#262a32;color:var(--muted);border-radius:999px;padding:2px 9px;font-size:11px;}
+.list li.feedrow{opacity:.9;}
+.list li.feedrow .t{color:var(--muted);font-size:13px;}
 .hostbtns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
 .hostbtns button{background:var(--card);border:1px solid var(--line-strong);color:var(--ink);font-weight:500;font-size:14px;padding:8px 14px;border-radius:9px;}
 .hostbtns button:hover{border-color:var(--subtle);filter:none;}
@@ -310,7 +316,9 @@ $('cardText').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ 
 // ── TICKER messages ──
 function render(){
   const list = $('list'); list.innerHTML='';
-  if(!state.ticker.items.length) list.innerHTML='<div class="empty">Nothing in the ticker yet — send a message above.</div>';
+  const feedItems = state.ticker.feedItems || [];
+  if(!state.ticker.items.length && !feedItems.length)
+    list.innerHTML='<div class="empty">Nothing in the ticker yet — send a message above.</div>';
   state.ticker.items.forEach((item,i)=>{
     const li=document.createElement('li');
     const tag=item.tag?`<span class="tg"></span>`:'';
@@ -320,6 +328,20 @@ function render(){
     li.querySelector('.del').onclick=()=>{ state.ticker.items=state.ticker.items.filter(x=>x.id!==item.id); publish(); };
     list.appendChild(li);
   });
+  // Live RSS headlines — read-only, so you can SEE the feed is working
+  if(feedItems.length){
+    const head=document.createElement('li'); head.className='subhead';
+    head.innerHTML=`<span>Live headlines from feeds</span><span class="cnt"></span>`;
+    head.querySelector('.cnt').textContent=feedItems.length;
+    list.appendChild(head);
+    feedItems.forEach(item=>{
+      const li=document.createElement('li'); li.className='feedrow';
+      li.innerHTML=`<span class="tg"></span><span class="t"></span>`;
+      li.querySelector('.tg').textContent=item.tag||'RSS';
+      li.querySelector('.t').textContent=item.text;
+      list.appendChild(li);
+    });
+  }
   // live pills
   $('ltPill').className = 'live-pill' + (state.lt.show ? ' on' : ''); $('ltPill').textContent = state.lt.show ? 'On air' : 'Hidden';
   $('cardPill').className = 'live-pill' + (state.card.show ? ' on-gold' : ''); $('cardPill').textContent = state.card.show ? 'On screen' : 'Hidden';
@@ -368,7 +390,7 @@ const PRESETS = [
 let feeds = JSON.parse(localStorage.getItem(FEEDS_KEY) || 'null') || [];
 let maxHeadlines = parseInt(localStorage.getItem(MAXHL_KEY) || '25', 10);
 let filters = JSON.parse(localStorage.getItem(FILT_KEY) || 'null') || { include: [], exclude: [] };
-let mixMode = localStorage.getItem(MIX_KEY) === '1';
+let mixMode = (localStorage.getItem(MIX_KEY) ?? '1') === '1';  // default ON so feed headlines interleave and hit air promptly
 state.ticker.mix = mixMode;
 const feedCache = {}, timers = {};
 
@@ -442,7 +464,8 @@ function addFeed(feed){
   if(!feed.url) return;
   if(feeds.some(f => f.url === feed.url)){ toast('Feed already added'); return; }
   const nf = { url: feed.url, title: feed.title || hostOf(feed.url), source: feed.source || hostOf(feed.url).slice(0,10).toUpperCase(), enabled: true, interval: 5 };
-  feeds.push(nf); saveFeeds(); renderFeeds(); scheduleTimers(); fetchFeed(nf); toast('Feed added');
+  feeds.push(nf); saveFeeds(); renderFeeds(); scheduleTimers();
+  setFeedStatus('Loading headlines…'); fetchFeed(nf); toast('Feed added — loading headlines…');
 }
 function renderFeeds(){
   const list = $('feedList'); if(list.contains(document.activeElement)) return;
