@@ -70,6 +70,15 @@ button.hide{background:#262a32;color:var(--muted);}
 .list li.subhead .cnt{background:#262a32;color:var(--muted);border-radius:999px;padding:2px 9px;font-size:11px;}
 .list li.feedrow{opacity:.9;}
 .list li.feedrow .t{color:var(--muted);font-size:13px;}
+/* question-card layout editor (16:9 preview of the 1920×1080 stage) */
+.le-preview{position:relative;width:100%;max-width:440px;aspect-ratio:16/9;margin-top:8px;
+  background:#101218;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden;
+  background-image:linear-gradient(#1b1f27 1px,transparent 1px),linear-gradient(90deg,#1b1f27 1px,transparent 1px);background-size:24px 24px;}
+.le-ticker{position:absolute;left:0;right:0;bottom:0;height:8.5%;background:#2B283A;border-top:2px solid #E40000;}
+.le-box{position:absolute;box-sizing:border-box;background:rgba(59,130,246,.28);border:1px solid var(--accent);border-radius:4px;
+  display:flex;align-items:center;justify-content:center;color:#cfe0ff;font-size:11px;font-weight:600;letter-spacing:1px;
+  cursor:grab;user-select:none;touch-action:none;}
+.le-box:active{cursor:grabbing;}
 .hostbtns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
 .hostbtns button{background:var(--card);border:1px solid var(--line-strong);color:var(--ink);font-weight:500;font-size:14px;padding:8px 14px;border-radius:9px;}
 .hostbtns button:hover{border-color:var(--subtle);filter:none;}
@@ -117,26 +126,19 @@ button.hide{background:#262a32;color:var(--muted);}
     </div>
     <label for="cardText" style="margin-top:12px;">Text</label>
     <textarea id="cardText" placeholder="e.g. Who's the AL MVP at the break?"></textarea>
-    <div class="two" style="margin-top:12px;">
-      <div>
-        <label for="cardPos">Position</label>
-        <select id="cardPos">
-          <option value="bottom">Above the ticker</option>
-          <option value="center">Center screen</option>
-          <option value="top">Upper third</option>
-        </select>
-      </div>
-      <div>
-        <label for="cardSize">Size</label>
-        <select id="cardSize">
-          <option value="s">Small</option>
-          <option value="m">Medium</option>
-          <option value="l">Large</option>
-        </select>
-      </div>
+    <label style="margin-top:14px;">Position &amp; size — drag the box to place it, slider to resize</label>
+    <div class="le-preview" id="lePreview">
+      <div class="le-ticker"></div>
+      <div class="le-box" id="leCard">QUESTION</div>
+    </div>
+    <div class="row" style="margin-top:10px;">
+      <span class="hint" style="min-width:36px;">Size</span>
+      <input type="range" id="cardScale" min="0.5" max="2" step="0.05" value="1" style="flex:1;" />
+      <span class="hint" id="cardScaleVal" style="min-width:42px;text-align:right;">100%</span>
+      <button class="ghost" id="cardReset">Reset</button>
     </div>
     <div class="row">
-      <div class="grow hint">Enter to show • Shift+Enter for a line break. Position &amp; size update live.</div>
+      <div class="grow hint">Enter to show • Shift+Enter for a line break. Drag &amp; size update live on the overlay.</div>
       <button class="hide" id="cardHide">HIDE</button>
       <button class="gold" id="cardShow">SHOW ON SCREEN ▸</button>
     </div>
@@ -279,7 +281,6 @@ function renderHosts(){
       if(e.target.classList.contains('x')){ hosts.splice(i,1); localStorage.setItem(HOSTS_KEY,JSON.stringify(hosts)); renderHosts(); return; }
       $('ltName').value = h.name; $('ltRole').value = h.role || '';
       state.lt = { name:h.name, role:h.role||'', show:true };
-      if((state.card.pos||'bottom')==='bottom') state.card.show=false;
       publish(); toast('Lower third live ▸');
     };
     box.appendChild(b);
@@ -292,7 +293,6 @@ $('ltSaveHost').onclick = () => {
 };
 $('ltShow').onclick = () => {
   state.lt = { name:$('ltName').value.trim(), role:$('ltRole').value.trim(), show:true };
-  if((state.card.pos||'bottom')==='bottom') state.card.show=false;   // only hide a question sharing the bottom band
   publish(); toast('Lower third live ▸');
 };
 $('ltHide').onclick = () => { state.lt.show = false; publish(); toast('Lower third hidden'); };
@@ -303,25 +303,53 @@ $('kindPick').querySelectorAll('button').forEach((b,idx)=>{
   b.onclick=()=>{ $('kindPick').querySelectorAll('button').forEach(x=>x.classList.remove('on'));
     b.classList.add('on'); state.card.kind=b.dataset.kind; };
 });
+// ── question card layout (drag + scale), stage = 1920×1080 ──
+const CARD_DEF = { x:460, y:745, scale:1 }, CARD_W=1000, CARD_H=220;
+const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+function ncard(k){ return Number.isFinite(state.card[k]) ? state.card[k] : CARD_DEF[k]; }
+function renderLeBox(){
+  const pv = $('lePreview').clientWidth / 1920; if(!pv) return;
+  const s = ncard('scale'), box = $('leCard');
+  box.style.left   = (ncard('x')*pv)+'px';
+  box.style.top    = (ncard('y')*pv)+'px';
+  box.style.width  = (CARD_W*s*pv)+'px';
+  box.style.height = (CARD_H*s*pv)+'px';
+}
+function syncCardEditor(){
+  $('cardScale').value = ncard('scale');
+  $('cardScaleVal').textContent = Math.round(ncard('scale')*100)+'%';
+  renderLeBox();
+}
 function showCard(){
   const text=$('cardText').value.trim(); if(!text) return;
-  state.card={ kind:state.card.kind||'TOPIC', text, show:true, pos:$('cardPos').value, size:$('cardSize').value };
-  if($('cardPos').value==='bottom') state.lt.show=false;   // only the bottom band overlaps the lower third
+  state.card = Object.assign({}, state.card, { kind:state.card.kind||'TOPIC', text, show:true,
+    x:ncard('x'), y:ncard('y'), scale:ncard('scale') });
   publish(); toast('On screen ▸');
 }
 $('cardShow').onclick=showCard;
 $('cardHide').onclick=()=>{ state.card.show=false; publish(); toast('Card hidden'); };
 $('cardText').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); showCard(); }});
-// position/size update live — even while the card is on screen
-function applyCardLayout(){
-  state.card.pos=$('cardPos').value; state.card.size=$('cardSize').value;
-  if(state.card.show && state.card.pos==='bottom') state.lt.show=false;
-  publish();
-}
-$('cardPos').onchange=applyCardLayout;
-$('cardSize').onchange=applyCardLayout;
-$('cardPos').value=state.card.pos||'bottom';
-$('cardSize').value=state.card.size||'m';
+
+let leDrag=false, leSX=0, leSY=0, leOX=0, leOY=0;
+$('leCard').addEventListener('pointerdown', e=>{
+  leDrag=true; leSX=e.clientX; leSY=e.clientY; leOX=ncard('x'); leOY=ncard('y');
+  $('leCard').setPointerCapture(e.pointerId); e.preventDefault();
+});
+$('leCard').addEventListener('pointermove', e=>{
+  if(!leDrag) return;
+  const pv=$('lePreview').clientWidth/1920, s=ncard('scale');
+  state.card.x = Math.round(clamp(leOX+(e.clientX-leSX)/pv, 0, Math.max(0,1920-CARD_W*s)));
+  state.card.y = Math.round(clamp(leOY+(e.clientY-leSY)/pv, 0, Math.max(0,1080-CARD_H*s)));
+  renderLeBox();                     // live in the preview; overlay updates on release
+});
+function leEnd(){ if(leDrag){ leDrag=false; publish(); } }   // one publish on release
+$('leCard').addEventListener('pointerup', leEnd);
+$('leCard').addEventListener('pointercancel', leEnd);
+$('cardScale').addEventListener('input', e=>{ state.card.scale=parseFloat(e.target.value);
+  $('cardScaleVal').textContent=Math.round(state.card.scale*100)+'%'; renderLeBox(); });
+$('cardScale').addEventListener('change', ()=>publish());     // publish on slider release
+$('cardReset').onclick=()=>{ Object.assign(state.card, CARD_DEF); syncCardEditor(); publish(); toast('Layout reset'); };
+window.addEventListener('resize', renderLeBox);
 
 // ── TICKER messages ──
 function render(){
@@ -487,7 +515,7 @@ $('rssToggle').onclick = () => {
 };
 
 // ── init ──
-renderHosts(); buildFeedSelect();
+renderHosts(); buildFeedSelect(); syncCardEditor();
 { const f = chosenFeed(); if(!rss.url && f.url){ rss.url = f.url; rss.source = f.source; } }  // default to first preset
 updateRssUI();
 if(rss.on) startRss();
@@ -511,7 +539,7 @@ fbRef(topic).once('value').then(snap => {
     }
     $('ltName').value = state.lt.name||''; $('ltRole').value = state.lt.role||'';
     $('cardText').value = state.card.text||'';
-    $('cardPos').value = state.card.pos||'bottom'; $('cardSize').value = state.card.size||'m';
+    syncCardEditor();
     render();
   }
   publish();
