@@ -109,6 +109,23 @@ button.hide{background:#262a32;color:var(--muted);}
       <div><label for="ltName">Name</label><input type="text" id="ltName" placeholder="Jake Storiale"/></div>
       <div><label for="ltRole">Role / subtitle</label><input type="text" id="ltRole" placeholder="Host — Talkin' Baseball"/></div>
     </div>
+    <div class="row" style="margin-top:14px;justify-content:space-between;">
+      <label style="margin:0;">Position &amp; size</label>
+      <button class="ghost" id="ltLayoutToggle">Adjust ▾</button>
+    </div>
+    <div id="ltLayout">
+      <div class="hint" style="margin:2px 0 8px;">Drag the box to place it; slider resizes. Moves live while the lower third is on screen.</div>
+      <div class="le-preview" id="ltPreview">
+        <div class="le-ticker"></div>
+        <div class="le-box" id="leLt">LOWER THIRD</div>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <span class="hint" style="min-width:36px;">Size</span>
+        <input type="range" id="ltScale" min="0.5" max="2" step="0.05" value="1" style="flex:1;" />
+        <span class="hint" id="ltScaleVal" style="min-width:42px;text-align:right;">100%</span>
+        <button class="ghost" id="ltReset">Reset</button>
+      </div>
+    </div>
     <div class="row">
       <button class="ghost" id="ltSaveHost">＋ Save as host</button>
       <div class="grow"></div>
@@ -193,6 +210,11 @@ button.hide{background:#262a32;color:var(--muted);}
       <div class="field"><label>Scroll speed (px/sec)</label><input type="text" id="speedInput" placeholder="90" /></div>
       <button class="gold" id="saveCfg">SAVE</button>
     </div>
+    <div class="row" style="margin-top:14px;">
+      <span class="hint" style="min-width:60px;">Ticker</span>
+      <button class="ghost" id="tickPos">Bottom of screen</button>
+      <button class="ghost" id="tickVis">On air</button>
+    </div>
   </div>
 
   <div class="card">
@@ -257,8 +279,9 @@ function load(){
   } catch { return null; }
 }
 
+let _lastTs = 0;
 function publish(){
-  state.ts = Date.now();
+  state.ts = Math.max(Date.now(), _lastTs + 1); _lastTs = state.ts;   // monotonic — never drop a same-ms update on the Display
   localStorage.setItem(LS_KEY, JSON.stringify(state));
   render();
   fbRef(topic).set(state).catch(() => setNet(false));
@@ -286,7 +309,7 @@ function renderHosts(){
     b.onclick = (e) => {
       if(e.target.classList.contains('x')){ hosts.splice(i,1); localStorage.setItem(HOSTS_KEY,JSON.stringify(hosts)); renderHosts(); return; }
       $('ltName').value = h.name; $('ltRole').value = h.role || '';
-      state.lt = { name:h.name, role:h.role||'', show:true };
+      state.lt = Object.assign({}, state.lt, { name:h.name, role:h.role||'', show:true });
       publish(); toast('Lower third live ▸');
     };
     box.appendChild(b);
@@ -298,7 +321,7 @@ $('ltSaveHost').onclick = () => {
   localStorage.setItem(HOSTS_KEY, JSON.stringify(hosts)); renderHosts(); toast('Host saved');
 };
 $('ltShow').onclick = () => {
-  state.lt = { name:$('ltName').value.trim(), role:$('ltRole').value.trim(), show:true };
+  state.lt = Object.assign({}, state.lt, { name:$('ltName').value.trim(), role:$('ltRole').value.trim(), show:true });
   publish(); toast('Lower third live ▸');
 };
 $('ltHide').onclick = () => { state.lt.show = false; publish(); toast('Lower third hidden'); };
@@ -309,68 +332,54 @@ $('kindPick').querySelectorAll('button').forEach((b,idx)=>{
   b.onclick=()=>{ $('kindPick').querySelectorAll('button').forEach(x=>x.classList.remove('on'));
     b.classList.add('on'); state.card.kind=b.dataset.kind; };
 });
-// ── question card layout (drag + scale), stage = 1920×1080 ──
-const CARD_DEF = { x:460, y:745, scale:1 }, CARD_W=1000, CARD_H=220;
+// ── layout editors (drag + scale) — shared factory; stage = 1920×1080 ──
 const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
-function ncard(k){ return Number.isFinite(state.card[k]) ? state.card[k] : CARD_DEF[k]; }
-function renderLeBox(){
-  const pv = $('lePreview').clientWidth / 1920; if(!pv) return;
-  const s = ncard('scale'), box = $('leCard');
-  box.style.left   = (ncard('x')*pv)+'px';
-  box.style.top    = (ncard('y')*pv)+'px';
-  box.style.width  = (CARD_W*s*pv)+'px';
-  box.style.height = (CARD_H*s*pv)+'px';
+// throttled live publish so the overlay tracks the box as you drag/resize
+let _liveT=null, _livePending=false;
+function publishLive(){
+  if(_liveT){ _livePending=true; return; }
+  publish(); _liveT=setTimeout(()=>{ _liveT=null; if(_livePending){ _livePending=false; publish(); } }, 120);
 }
-function syncCardEditor(){
-  $('cardScale').value = ncard('scale');
-  $('cardScaleVal').textContent = Math.round(ncard('scale')*100)+'%';
-  renderLeBox();
+function makeEditor(cfg){
+  const L=cfg.layout, n=k=>Number.isFinite(L()[k])?L()[k]:cfg.def[k];
+  const box=$(cfg.box), prev=$(cfg.preview);
+  function render(){ const pv=prev.clientWidth/1920; if(!pv) return; const s=n('scale');
+    box.style.left=(n('x')*pv)+'px'; box.style.top=(n('y')*pv)+'px';
+    box.style.width=(cfg.w*s*pv)+'px'; box.style.height=(cfg.h*s*pv)+'px'; }
+  function sync(){ $(cfg.scale).value=n('scale'); $(cfg.scaleVal).textContent=Math.round(n('scale')*100)+'%'; render(); }
+  let drag=false,sx,sy,ox,oy;
+  box.addEventListener('pointerdown',e=>{ drag=true;sx=e.clientX;sy=e.clientY;ox=n('x');oy=n('y');box.setPointerCapture(e.pointerId);e.preventDefault(); });
+  box.addEventListener('pointermove',e=>{ if(!drag)return; const pv=prev.clientWidth/1920,s=n('scale'),o=L();
+    o.x=Math.round(clamp(ox+(e.clientX-sx)/pv,0,Math.max(0,1920-cfg.w*s)));
+    o.y=Math.round(clamp(oy+(e.clientY-sy)/pv,0,Math.max(0,1080-cfg.h*s)));
+    render(); publishLive(); });
+  const end=()=>{ if(drag){drag=false;publish();} };
+  box.addEventListener('pointerup',end); box.addEventListener('pointercancel',end);
+  $(cfg.scale).addEventListener('input',e=>{ L().scale=parseFloat(e.target.value); $(cfg.scaleVal).textContent=Math.round(L().scale*100)+'%'; render(); publishLive(); });
+  $(cfg.scale).addEventListener('change',()=>publish());
+  $(cfg.reset).onclick=()=>{ Object.assign(L(),cfg.def); sync(); publish(); toast('Layout reset'); };
+  const key='podcast_open_'+cfg.box; let open=localStorage.getItem(key)!=='0';
+  function applyOpen(){ $(cfg.wrap).style.display=open?'':'none'; $(cfg.toggle).textContent=open?'Hide ▴':'Adjust ▾'; if(open) render(); }
+  $(cfg.toggle).onclick=()=>{ open=!open; localStorage.setItem(key,open?'1':'0'); applyOpen(); };
+  return { render, sync, applyOpen, n };
 }
+const cardEd = makeEditor({ layout:()=>state.card, def:{x:460,y:745,scale:1}, w:1000, h:220,
+  preview:'lePreview', box:'leCard', scale:'cardScale', scaleVal:'cardScaleVal', reset:'cardReset', wrap:'cardLayout', toggle:'layoutToggle' });
+const ltEd = makeEditor({ layout:()=>state.lt, def:{x:60,y:848,scale:1}, w:420, h:150,
+  preview:'ltPreview', box:'leLt', scale:'ltScale', scaleVal:'ltScaleVal', reset:'ltReset', wrap:'ltLayout', toggle:'ltLayoutToggle' });
+function syncEditors(){ cardEd.sync(); ltEd.sync(); }
+function applyEditorsOpen(){ cardEd.applyOpen(); ltEd.applyOpen(); }
+window.addEventListener('resize', ()=>{ cardEd.render(); ltEd.render(); });
+
 function showCard(){
   const text=$('cardText').value.trim(); if(!text) return;
   state.card = Object.assign({}, state.card, { kind:state.card.kind||'TOPIC', text, show:true,
-    x:ncard('x'), y:ncard('y'), scale:ncard('scale') });
+    x:cardEd.n('x'), y:cardEd.n('y'), scale:cardEd.n('scale') });
   publish(); toast('On screen ▸');
 }
 $('cardShow').onclick=showCard;
 $('cardHide').onclick=()=>{ state.card.show=false; publish(); toast('Card hidden'); };
 $('cardText').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); showCard(); }});
-
-// throttled live publish so the overlay tracks the box as you drag/resize
-let _cardT=null, _cardPending=false;
-function publishCardLive(){
-  if(_cardT){ _cardPending=true; return; }
-  publish(); _cardT=setTimeout(()=>{ _cardT=null; if(_cardPending){ _cardPending=false; publish(); } }, 120);
-}
-let leDrag=false, leSX=0, leSY=0, leOX=0, leOY=0;
-$('leCard').addEventListener('pointerdown', e=>{
-  leDrag=true; leSX=e.clientX; leSY=e.clientY; leOX=ncard('x'); leOY=ncard('y');
-  $('leCard').setPointerCapture(e.pointerId); e.preventDefault();
-});
-$('leCard').addEventListener('pointermove', e=>{
-  if(!leDrag) return;
-  const pv=$('lePreview').clientWidth/1920, s=ncard('scale');
-  state.card.x = Math.round(clamp(leOX+(e.clientX-leSX)/pv, 0, Math.max(0,1920-CARD_W*s)));
-  state.card.y = Math.round(clamp(leOY+(e.clientY-leSY)/pv, 0, Math.max(0,1080-CARD_H*s)));
-  renderLeBox(); publishCardLive();  // live: preview + overlay track the drag
-});
-function leEnd(){ if(leDrag){ leDrag=false; publish(); } }   // final exact publish
-$('leCard').addEventListener('pointerup', leEnd);
-$('leCard').addEventListener('pointercancel', leEnd);
-$('cardScale').addEventListener('input', e=>{ state.card.scale=parseFloat(e.target.value);
-  $('cardScaleVal').textContent=Math.round(state.card.scale*100)+'%'; renderLeBox(); publishCardLive(); });
-$('cardScale').addEventListener('change', ()=>publish());
-$('cardReset').onclick=()=>{ Object.assign(state.card, CARD_DEF); syncCardEditor(); publish(); toast('Layout reset'); };
-window.addEventListener('resize', renderLeBox);
-
-// show/hide the positioning editor
-let layoutOpen = localStorage.getItem('podcast_layoutOpen') !== '0';
-function applyLayoutOpen(){
-  $('cardLayout').style.display = layoutOpen ? '' : 'none';
-  $('layoutToggle').textContent = layoutOpen ? 'Hide ▴' : 'Adjust ▾';
-  if(layoutOpen) renderLeBox();   // preview had 0 width while hidden — recompute now
-}
-$('layoutToggle').onclick=()=>{ layoutOpen=!layoutOpen; localStorage.setItem('podcast_layoutOpen', layoutOpen?'1':'0'); applyLayoutOpen(); };
 
 // ── TICKER messages ──
 function render(){
@@ -404,9 +413,12 @@ function render(){
   // live pills
   $('ltPill').className = 'live-pill' + (state.lt.show ? ' on' : ''); $('ltPill').textContent = state.lt.show ? 'On air' : 'Hidden';
   $('cardPill').className = 'live-pill' + (state.card.show ? ' on-gold' : ''); $('cardPill').textContent = state.card.show ? 'On screen' : 'Hidden';
-  const barOn = state.ticker.show !== false;
+  const barOn = state.ticker.show !== false, barTop = state.ticker.pos === 'top';
   $('tickPill').className = 'live-pill' + (barOn ? ' on' : ''); $('tickPill').textContent = barOn ? 'On air' : 'Hidden';
   $('tickToggle').textContent = barOn ? 'Hide bar' : 'Show bar';
+  $('tickPos').textContent = barTop ? 'Top of screen' : 'Bottom of screen';
+  $('tickVis').textContent = barOn ? 'On air' : 'Hidden';
+  $('tickVis').style.color = barOn ? '' : 'var(--subtle)';
   if(document.activeElement!==$('labelInput')) $('labelInput').value=state.ticker.label||'';
   if(document.activeElement!==$('speedInput')) $('speedInput').value=state.ticker.speed||'';
   updateUrl();
@@ -431,6 +443,8 @@ $('send').onclick=send;
 $('msg').addEventListener('keydown',(e)=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); send(); }});
 $('clear').onclick=()=>{ if(confirm('Clear all ticker messages?')){ state.ticker.items=[]; publish(); toast('Cleared'); }};
 $('tickToggle').onclick=()=>{ state.ticker.show = state.ticker.show===false; publish(); };
+$('tickVis').onclick=()=>{ state.ticker.show = state.ticker.show===false; publish(); toast(state.ticker.show===false?'Ticker hidden':'Ticker on air'); };
+$('tickPos').onclick=()=>{ state.ticker.pos = state.ticker.pos==='top' ? 'bottom' : 'top'; publish(); toast('Ticker: '+(state.ticker.pos==='top'?'top':'bottom')); };
 $('saveCfg').onclick=()=>{ state.ticker.label=$('labelInput').value;
   const sp=parseInt($('speedInput').value,10); if(Number.isFinite(sp)) state.ticker.speed=Math.max(20,Math.min(400,sp));
   publish(); toast('Settings saved'); };
@@ -536,7 +550,7 @@ $('rssToggle').onclick = () => {
 };
 
 // ── init ──
-renderHosts(); buildFeedSelect(); syncCardEditor(); applyLayoutOpen();
+renderHosts(); buildFeedSelect(); syncEditors(); applyEditorsOpen();
 { const f = chosenFeed(); if(!rss.url && f.url){ rss.url = f.url; rss.source = f.source; } }  // default to first preset
 updateRssUI();
 if(rss.on) startRss();
@@ -560,7 +574,7 @@ fbRef(topic).once('value').then(snap => {
     }
     $('ltName').value = state.lt.name||''; $('ltRole').value = state.lt.role||'';
     $('cardText').value = state.card.text||'';
-    syncCardEditor();
+    syncEditors();
     render();
   }
   publish();
