@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Playout — Title Bar Maker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Sofia+Sans+Condensed:wght@600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#15171c;--card:#1d2027;--line:#2a2e36;--line-strong:#3a3f4a;--ink:#e6e8ec;--muted:#9aa2b0;--subtle:#6d7480;--navy:#14284D;--red:#E40000;}
+html,body{min-height:100%;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;}
+body{display:flex;align-items:center;justify-content:center;padding:40px 20px;min-height:100vh;}
+.wrap{max-width:560px;width:100%;}
+.logo{font-size:34px;font-weight:800;letter-spacing:-.01em;}
+.logo span{color:var(--red);}
+.tag{color:var(--muted);font-size:15px;margin:8px 0 28px;line-height:1.5;}
+
+/* mini title-bar hero */
+.hero{aspect-ratio:16/6;background:#0c0e12;border:1px solid var(--line-strong);border-radius:12px;position:relative;overflow:hidden;margin-bottom:28px;
+  background-image:linear-gradient(#161a21 1px,transparent 1px),linear-gradient(90deg,#161a21 1px,transparent 1px);background-size:28px 28px;}
+.hero .bar{position:absolute;left:0;right:0;bottom:0;height:26%;display:flex;align-items:center;justify-content:center;
+  background:var(--navy);border-top:2px solid rgba(255,255,255,.10);}
+.hero .bar span{font-family:'Sofia Sans Condensed',sans-serif;font-weight:800;text-transform:uppercase;color:#fff;
+  font-size:clamp(13px,3.4vw,22px);letter-spacing:.5px;white-space:nowrap;}
+.hero .bar .pipe{opacity:.45;font-weight:600;margin:0 .5em;}
+
+.links{display:flex;gap:12px;flex-wrap:wrap;}
+a.btn{flex:1;min-width:200px;text-decoration:none;display:block;padding:16px 18px;border-radius:11px;border:1px solid var(--line-strong);
+  background:var(--card);color:var(--ink);transition:border-color .15s ease;}
+a.btn:hover{border-color:var(--subtle);}
+a.btn.primary{background:var(--red);border-color:var(--red);color:#fff;}
+a.btn .t{font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;}
+a.btn .d{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.4;}
+a.btn.primary .d{color:rgba(255,255,255,.82);}
+.foot{margin-top:26px;font-size:12px;color:var(--subtle);line-height:1.6;}
+.foot code{background:#22262e;padding:2px 6px;border-radius:5px;font-size:12px;color:var(--ink);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">PLAY<span>OUT</span></div>
+  <div class="tag">A title bar maker for Jomboy Media podcasts. Design one <b>DATE&nbsp;|&nbsp;TITLE</b> bar, drive it live as an OBS overlay, or export it as a transparent PNG.</div>
+
+  <div class="hero"><div class="bar"><span>JULY 7, 2026 <span class="pipe">|</span> TRADE DEADLINE PREVIEW</span></div></div>
+
+  <div class="links">
+    <a class="btn primary" href="Playout_Control.html">
+      <div class="t">Open Control ▸</div>
+      <div class="d">Make the bar, set colors &amp; size, push it live, export PNG.</div>
+    </a>
+    <a class="btn" href="Playout_Display.html?topic=jomboy-podcast">
+      <div class="t">OBS Display</div>
+      <div class="d">The overlay itself — add as a Browser Source in OBS.</div>
+    </a>
+  </div>
+
+  <div class="foot">
+    In OBS, add ONE Browser Source at <b>1920×1080</b> pointing at the Display URL (grab the exact URL with your topic from the Control page). Keep your topic secret so only you can post.
+  </div>
+</div>
+</body>
+</html>

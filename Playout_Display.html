@@ -5,78 +5,33 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Playout — Display</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Sofia+Sans+Semi+Condensed:ital,wght@0,400;0,500;0,700;0,800;1,400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Sofia+Sans+Condensed:wght@600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;overflow:hidden;background:transparent;}
-body{font-family:'Sofia Sans Semi Condensed',sans-serif;}
+body{font-family:'Sofia Sans Condensed',sans-serif;}
 
-/* ── LOWER THIRD (host name card) ── */
-#lt{
-  position:fixed;left:0;top:0;transform-origin:top left;z-index:5;pointer-events:none;
-  transform:translate(60px,848px) scale(1);   /* default; overwritten from state */
-}
-#ltInner{
-  display:inline-flex;flex-direction:column;
-  background:#2B283A;border-left:6px solid #E40000;
-  padding:16px 30px 16px 24px;min-width:340px;box-shadow:0 8px 40px rgba(0,0,0,.6);
-  transform:translateX(-130%);opacity:0;
-  transition:transform .5s cubic-bezier(.16,1,.3,1),opacity .5s ease;
-}
-#lt.show #ltInner{transform:translateX(0);opacity:1;}
-#lt .name{font-family:'Bebas Neue',sans-serif;font-style:italic;font-size:52px;line-height:.92;
-  letter-spacing:2px;color:#fff;white-space:nowrap;}
-#lt .role{font-family:'DM Mono',monospace;font-weight:400;font-size:17px;letter-spacing:3px;
-  text-transform:uppercase;color:#E40000;margin-top:6px;}
-
-/* ── TOPIC / QUESTION CARD — free position + scale, dragged from the control page ── */
-#card{
-  position:fixed;left:0;top:0;transform-origin:top left;width:1000px;z-index:6;
-  text-align:center;pointer-events:none;
-  transform:translate(460px,745px) scale(1);   /* default; overwritten from state */
-}
-#cardInner{opacity:0;transform:translateY(20px);
-  transition:opacity .4s ease, transform .4s cubic-bezier(.16,1,.3,1);}
-#card.show #cardInner{opacity:1;transform:translateY(0);}
-#card .kind{display:inline-block;font-family:'Bebas Neue',sans-serif;font-size:26px;
-  letter-spacing:6px;color:#2B283A;background:#E40000;padding:6px 22px;border-radius:3px;margin-bottom:16px;}
-#card .kind.question{background:#FCFF7A;}
-#card .body{font-family:'Bebas Neue',sans-serif;font-style:italic;font-size:70px;line-height:1.02;letter-spacing:1px;
-  color:#fff;text-shadow:0 6px 30px rgba(0,0,0,.7);}
-
-/* ── TICKER (bottom bar) ── */
+/* ── FULL-WIDTH TITLE BAR (locked to bottom of the 1920×1080 stage) ── */
 #bar{
-  position:fixed;left:0;right:0;bottom:0;height:92px;
-  display:flex;align-items:stretch;background:#2B283A;
-  border-top:3px solid #E40000;z-index:8;
+  position:fixed;left:0;right:0;bottom:0;height:84px;z-index:5;pointer-events:none;
+  display:flex;align-items:center;justify-content:center;
+  background:#14284D;                          /* deep navy */
+  border-top:2px solid rgba(255,255,255,.10);  /* subtle top highlight */
+  box-shadow:0 -6px 30px rgba(0,0,0,.45);
+  transform:translateY(110%);                  /* hidden by default */
+  transition:transform .45s cubic-bezier(.16,1,.3,1);
 }
-#bar.top{top:0;bottom:auto;border-top:none;border-bottom:3px solid #E40000;}
-#label{
-  flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:0 30px;
-  font-family:'Bebas Neue',sans-serif;font-style:italic;font-size:38px;letter-spacing:4px;color:#fff;
-  white-space:nowrap;z-index:3;background:#1A1823;border-right:1px solid #3A3749;
+#bar.show{transform:translateY(0);}
+#barText{
+  white-space:nowrap;color:#fff;text-transform:uppercase;
+  font-weight:800;font-size:48px;letter-spacing:.5px;line-height:1;
+  padding:0 1.667em;transform-origin:center;
 }
-#label .live-dot{width:9px;height:9px;border-radius:50%;background:#E40000;
-  box-shadow:0 0 10px #E40000;animation:pulse 1.6s ease-in-out infinite;}
-#label span.red{color:#E40000;}
-@keyframes pulse{0%,100%{opacity:.35;}50%{opacity:1;}}
-#bar.hidden{transform:translateY(110%);}
-#bar.top.hidden{transform:translateY(-110%);}
-#bar{transition:transform .4s ease;}
-
-#viewport{position:relative;flex:1 1 auto;overflow:hidden;background:#2B283A;}
-#track{position:absolute;top:0;left:0;height:100%;white-space:nowrap;will-change:transform;}
-.item{display:inline-flex;align-items:center;height:92px;font-family:'Sofia Sans Semi Condensed',sans-serif;
-  font-weight:500;font-size:35px;letter-spacing:.3px;color:#fff;vertical-align:top;}
-.item .tag{font-family:'Bebas Neue',sans-serif;font-size:25px;letter-spacing:3px;
-  color:#2B283A;background:#E40000;padding:4px 13px;margin-right:18px;border-radius:2px;}
-.item.fresh .txt{color:#fff;}
-.sep{color:#E40000;font-size:17px;padding:0 34px;}
-#viewport::before,#viewport::after{content:"";position:absolute;top:0;bottom:0;width:50px;z-index:2;pointer-events:none;}
-#viewport::before{left:0;background:linear-gradient(90deg,#2B283A,transparent);}
-#viewport::after{right:0;background:linear-gradient(270deg,#2B283A,transparent);}
+#barText .date{font-weight:700;}
+#barText .pipe{display:inline-block;margin:0 .5em;color:inherit;opacity:.45;font-weight:600;transform:translateY(-2px);}
+#barText .title{font-weight:800;}
 
 #conn{position:fixed;top:4px;left:4px;width:6px;height:6px;border-radius:50%;
   background:#555;z-index:9;opacity:.5;}
@@ -86,14 +41,7 @@ body{font-family:'Sofia Sans Semi Condensed',sans-serif;}
 <body>
 <div id="conn" title="firebase connection"></div>
 
-<div id="lt"><div id="ltInner"><div class="name"></div><div class="role"></div></div></div>
-
-<div id="card"><div id="cardInner"><div class="kind"></div><div class="body"></div></div></div>
-
-<div id="bar">
-  <div id="label"><span class="live-dot"></span><span>THE SHOW</span></div>
-  <div id="viewport"><div id="track"></div></div>
-</div>
+<div id="bar"><div id="barText"><span class="date"></span><span class="pipe">|</span><span class="title"></span></div></div>
 
 <script>
 // ── Firebase (shared house project) ──
@@ -115,111 +63,42 @@ const DEFAULT_TOPIC = 'jomboy-podcast';
 const params = new URLSearchParams(location.search);
 const TOPIC  = params.get('topic') || DEFAULT_TOPIC;
 
-const conn     = document.getElementById('conn');
-const labelEl  = document.querySelector('#label span:last-child');
-const viewport = document.getElementById('viewport');
-const track    = document.getElementById('track');
-const ltEl     = document.getElementById('lt');
-const cardEl   = document.getElementById('card');
-const barEl    = document.getElementById('bar');
+const conn    = document.getElementById('conn');
+const barEl   = document.getElementById('bar');
+const textEl  = document.getElementById('barText');
+const dateEl  = textEl.querySelector('.date');
+const pipeEl  = textEl.querySelector('.pipe');
+const titleEl = textEl.querySelector('.title');
+let lastTs = 0;
 
-// ── ticker scroll state ──
-let messages = [], seen = new Set(), pending = [], rotPtr = 0;
-let speed = 90, offset = 0, last = null, lastTs = 0;
-const pageStart = performance.now();
-const SEP = '◆';
+// Shrink the text to fit the 1920 stage if a title runs long.
+function fit(){
+  textEl.style.transform = 'scale(1)';
+  const avail = 1920, w = textEl.scrollWidth;
+  if(w > avail) textEl.style.transform = 'scale(' + (avail / w) + ')';
+}
 
 function applyState(state){
   if(!state || typeof state !== 'object') return;
   if(!state.ts || state.ts <= lastTs) return;
   lastTs = state.ts;
 
-  // ── lower third ──
-  const lt = state.lt || {};
-  ltEl.querySelector('.name').textContent = lt.name || '';
-  ltEl.querySelector('.role').textContent = lt.role || '';
-  const lx = Number.isFinite(lt.x) ? lt.x : 60, ly = Number.isFinite(lt.y) ? lt.y : 848, ls = Number.isFinite(lt.scale) ? lt.scale : 1;
-  ltEl.style.transform = `translate(${lx}px,${ly}px) scale(${ls})`;
-  ltEl.classList.toggle('show', !!lt.show && !!(lt.name||lt.role));
-
-  // ── topic/question card ──
-  const card = state.card || {};
-  const kindEl = cardEl.querySelector('.kind');
-  kindEl.textContent = card.kind || 'TOPIC';
-  kindEl.classList.toggle('question', (card.kind||'').toUpperCase()==='QUESTION');
-  cardEl.querySelector('.body').textContent = card.text || '';
-  const cx = Number.isFinite(card.x) ? card.x : 460, cy = Number.isFinite(card.y) ? card.y : 745, cs = Number.isFinite(card.scale) ? card.scale : 1;
-  cardEl.style.transform = `translate(${cx}px,${cy}px) scale(${cs})`;
-  cardEl.classList.toggle('show', !!card.show && !!card.text);
-
-  // ── ticker ──
-  const tk = state.ticker || {};
-  barEl.classList.toggle('top', tk.pos === 'top');
-  barEl.classList.toggle('hidden', tk.show === false);
-  if(typeof tk.label === 'string' && tk.label) labelEl.innerHTML = tk.label;
-  if(Number.isFinite(tk.speed)) speed = tk.speed;
-  const norm = x => { if(!x) return []; if(!Array.isArray(x)) x = Object.values(x); return x.filter(Boolean); };
-  const manual = norm(tk.items), feed = norm(tk.feedItems);
-  messages = tk.mix ? weave(manual, feed) : [...manual, ...feed];
-
-  const ids = new Set(messages.map(m => m.id));
-  const settled = (performance.now() - pageStart) > 2000;
-  for(const m of messages){ if(!seen.has(m.id)){ seen.add(m.id); if(settled) pending.push(m.id); } }
-  for(const id of [...seen]) if(!ids.has(id)) seen.delete(id);
+  const b = state.bar || {};
+  const date = (b.date || '').trim(), title = (b.title || '').trim();
+  dateEl.textContent = date;
+  titleEl.textContent = title;
+  pipeEl.style.display = (date && title) ? '' : 'none';
+  barEl.style.background = b.bg || '#14284D';
+  textEl.style.color     = b.fg || '#FFFFFF';
+  const size = Number.isFinite(b.size) ? b.size : 1;
+  barEl.style.height    = (84 * size) + 'px';
+  textEl.style.fontSize = (48 * size) + 'px';
+  fit();
+  barEl.classList.toggle('show', !!b.show && !!(date || title));
 }
 
 _db.ref('.info/connected').on('value', s => { conn.className = s.val() ? 'ok' : 'err'; });
 fbRef(TOPIC).on('value', snap => applyState(snap.val()));
-
-function weave(a, b){
-  if(!a.length) return b.slice(); if(!b.length) return a.slice();
-  const out = []; let ai = 0, bi = 0; const total = a.length + b.length;
-  for(let i = 0; i < total; i++){
-    if(ai/a.length <= bi/b.length) out.push(a[ai++]); else out.push(b[bi++]);
-    if(ai >= a.length){ while(bi < b.length) out.push(b[bi++]); break; }
-    if(bi >= b.length){ while(ai < a.length) out.push(a[ai++]); break; }
-  }
-  return out;
-}
-
-// ── seamless scroll engine (never reloads) ──
-function findMsg(id){ return messages.find(m => m.id === id); }
-function nextMessage(){
-  while(pending.length){ const m = findMsg(pending.shift()); if(m) return {m, fresh:true}; }
-  if(messages.length === 0) return null;
-  rotPtr = rotPtr % messages.length;
-  return {m: messages[rotPtr++], fresh:false};
-}
-function spawn(){
-  const next = nextMessage(); if(!next) return false;
-  const el = document.createElement('span');
-  el.className = 'item' + (next.fresh ? ' fresh' : '');
-  const tag = next.m.tag ? `<span class="tag"></span>` : '';
-  el.innerHTML = `<span class="sep">${SEP}</span>${tag}<span class="txt"></span>`;
-  el.querySelector('.txt').textContent = next.m.text;
-  if(next.m.tag) el.querySelector('.tag').textContent = next.m.tag;
-  track.appendChild(el); return true;
-}
-function needSpawn(){
-  if(messages.length === 0) return false;
-  const lastEl = track.lastChild; if(!lastEl) return true;
-  return (lastEl.offsetLeft + lastEl.offsetWidth + offset) < viewport.clientWidth + 300;
-}
-function frame(t){
-  if(last === null) last = t;
-  const dt = Math.min((t - last)/1000, 0.05); last = t;
-  if(track.firstChild) offset -= speed * dt; else offset = 0;
-  while(track.firstChild){
-    const c = track.firstChild;
-    if(c.offsetLeft + c.offsetWidth + offset < -5){ offset += c.offsetWidth; track.removeChild(c); }
-    else break;
-  }
-  let safety = 0;
-  while(needSpawn() && safety++ < 50){ if(!spawn()) break; }
-  track.style.transform = `translateX(${offset}px)`;
-  requestAnimationFrame(frame);
-}
-requestAnimationFrame(frame);
 </script>
 </body>
 </html>

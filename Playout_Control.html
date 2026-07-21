@@ -4,6 +4,8 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Playout — Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Sofia+Sans+Condensed:wght@600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
 <style>
@@ -13,7 +15,8 @@
   --ink:#e6e8ec; --muted:#9aa2b0; --subtle:#6d7480;
   --primary:#e8eaee; --primary-ink:#15171c;
   --accent:#3b82f6; --accent-soft:rgba(59,130,246,.18);
-  --ok-bg:rgba(34,197,94,.16); --ok-ink:#5cd07f; --warn-bg:rgba(250,204,21,.16); --warn-ink:#f5c542;
+  --ok-bg:rgba(34,197,94,.16); --ok-ink:#5cd07f;
+  --navy:#14284D; --red:#E40000;
 }
 html,body{min-height:100%;background:var(--bg);color:var(--ink);
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
@@ -21,7 +24,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--ink);
 body{padding:32px 20px 64px;}
 .wrap{max-width:760px;margin:0 auto;}
 .logo{font-size:20px;font-weight:700;letter-spacing:-.01em;color:var(--ink);}
-.logo span{color:var(--accent);}
+.logo span{color:var(--red);}
 .sub{font-size:12px;color:var(--muted);margin:6px 0 26px;display:flex;align-items:center;}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin-bottom:16px;
   box-shadow:0 1px 2px rgba(16,24,40,.04);}
@@ -30,60 +33,47 @@ body{padding:32px 20px 64px;}
 .live-pill{font-size:11px;font-weight:600;letter-spacing:.02em;padding:3px 10px;border-radius:999px;
   background:#262a32;color:var(--muted);}
 .live-pill.on{background:var(--ok-bg);color:var(--ok-ink);}
-.live-pill.on-gold{background:var(--warn-bg);color:var(--warn-ink);}
 label{display:block;font-size:11px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);margin-bottom:7px;}
 textarea,input[type=text]{width:100%;background:var(--input);color:var(--ink);border:1px solid var(--line-strong);border-radius:9px;
   padding:11px 13px;font-size:15px;font-family:inherit;resize:vertical;}
-textarea{min-height:68px;line-height:1.4;}
 textarea::placeholder,input::placeholder{color:var(--subtle);}
 textarea:focus,input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
-select{width:100%;background:var(--input);color:var(--ink);border:1px solid var(--line-strong);border-radius:9px;
-  padding:11px 13px;font-size:15px;font-family:inherit;cursor:pointer;}
 .row{display:flex;gap:10px;align-items:center;margin-top:14px;}
 .two{display:flex;gap:12px;}.two>div{flex:1;}
+.date-field{display:flex;gap:8px;}
+.date-field input{flex:1;}
 .grow{flex:1;}
-.tag-pick{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
-.tag-pick button{background:var(--card);border:1px solid var(--line-strong);color:var(--muted);
-  font-size:13px;font-weight:500;padding:6px 13px;border-radius:999px;cursor:pointer;}
-.tag-pick button:hover{border-color:var(--subtle);}
-.tag-pick button.on{background:var(--primary);border-color:var(--primary);color:var(--primary-ink);}
 button{border:none;border-radius:9px;padding:10px 18px;font-family:inherit;
   font-size:14px;font-weight:600;cursor:pointer;color:var(--primary-ink);background:var(--primary);}
 button:hover{filter:brightness(1.08);}
 button.ghost{background:var(--card);border:1px solid var(--line-strong);color:var(--muted);font-weight:500;padding:8px 14px;}
 button.ghost:hover{border-color:var(--subtle);filter:none;}
-button.gold{background:var(--accent);color:#fff;}
+button.red{background:var(--red);color:#fff;}
 button.hide{background:#262a32;color:var(--muted);}
 .hint{font-size:12px;color:var(--subtle);line-height:1.4;}
-.list{list-style:none;}
-.list li{display:flex;align-items:center;gap:11px;padding:10px 12px;border:1px solid var(--line);
-  border-radius:9px;margin-bottom:8px;background:var(--card);}
-.list .num{color:var(--subtle);font-weight:600;font-size:13px;min-width:22px;text-align:center;}
-.list .tg{font-size:11px;font-weight:600;letter-spacing:.02em;color:#a5b4fc;background:rgba(99,102,241,.18);padding:2px 8px;border-radius:5px;}
-.list .t{flex:1;font-size:14px;word-break:break-word;}
-.list .del{background:transparent;border:none;color:var(--subtle);font-size:17px;padding:2px 8px;cursor:pointer;}
-.list .del:hover{color:#e11d48;filter:none;}
-.empty{color:var(--subtle);font-size:14px;padding:6px 2px;}
-.list li.subhead{background:transparent;border:none;padding:16px 2px 6px;margin:0;
-  font-size:11px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);
-  display:flex;justify-content:space-between;align-items:center;}
-.list li.subhead .cnt{background:#262a32;color:var(--muted);border-radius:999px;padding:2px 9px;font-size:11px;}
-.list li.feedrow{opacity:.9;}
-.list li.feedrow .t{color:var(--muted);font-size:13px;}
-/* question-card layout editor (16:9 preview of the 1920×1080 stage) */
-.le-preview{position:relative;width:100%;max-width:440px;aspect-ratio:16/9;margin-top:8px;
-  background:#101218;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden;
-  background-image:linear-gradient(#1b1f27 1px,transparent 1px),linear-gradient(90deg,#1b1f27 1px,transparent 1px);background-size:24px 24px;}
-.le-ticker{position:absolute;left:0;right:0;bottom:0;height:8.5%;background:#2B283A;border-top:2px solid #E40000;}
-.le-box{position:absolute;box-sizing:border-box;background:rgba(59,130,246,.28);border:1px solid var(--accent);border-radius:4px;
-  display:flex;align-items:center;justify-content:center;color:#cfe0ff;font-size:11px;font-weight:600;letter-spacing:1px;
-  cursor:grab;user-select:none;touch-action:none;}
-.le-box:active{cursor:grabbing;}
-.hostbtns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
-.hostbtns button{background:var(--card);border:1px solid var(--line-strong);color:var(--ink);font-weight:500;font-size:14px;padding:8px 14px;border-radius:9px;}
-.hostbtns button:hover{border-color:var(--subtle);filter:none;}
-.hostbtns button .r{display:block;font-size:11px;font-weight:400;color:var(--muted);margin-top:2px;}
-.hostbtns button .x{color:var(--subtle);margin-left:8px;}
+
+/* ── live WYSIWYG preview of the 1920×1080 stage ── */
+.stagewrap{position:relative;width:100%;aspect-ratio:16/9;margin-top:8px;overflow:hidden;
+  background:#0c0e12;border:1px solid var(--line-strong);border-radius:8px;
+  background-image:linear-gradient(#161a21 1px,transparent 1px),linear-gradient(90deg,#161a21 1px,transparent 1px);background-size:32px 32px;}
+.stage{position:absolute;top:0;left:0;width:1920px;height:1080px;transform-origin:top left;}
+.pv-bar{position:absolute;left:0;right:0;bottom:0;height:84px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--navy);border-top:2px solid rgba(255,255,255,.10);box-shadow:0 -6px 30px rgba(0,0,0,.45);}
+.pv-text{white-space:nowrap;color:#fff;text-transform:uppercase;font-family:'Sofia Sans Condensed',sans-serif;
+  font-weight:800;font-size:48px;letter-spacing:.5px;line-height:1;padding:0 1.667em;transform-origin:center;}
+.pv-text .date{font-weight:700;}
+.pv-text .pipe{display:inline-block;margin:0 .5em;opacity:.45;font-weight:600;transform:translateY(-2px);}
+.pv-text .title{font-weight:800;}
+
+/* ── color pickers ── */
+.color-field{display:flex;gap:8px;align-items:center;}
+.color-field input[type=color]{width:44px;height:42px;padding:0;border:1px solid var(--line-strong);border-radius:9px;
+  background:var(--input);cursor:pointer;flex:0 0 auto;}
+.color-field input[type=color]::-webkit-color-swatch-wrapper{padding:4px;}
+.color-field input[type=color]::-webkit-color-swatch{border:none;border-radius:5px;}
+.color-field input[type=text]{flex:1;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;text-transform:uppercase;letter-spacing:.5px;}
+
 .settings{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;}
 .settings .field{flex:1;min-width:200px;}
 .urlbox{display:flex;gap:8px;margin-top:6px;}
@@ -98,129 +88,82 @@ button.hide{background:#262a32;color:var(--muted);}
 </head>
 <body>
 <div class="wrap">
-  <div class="logo">PLAY<span>OUT</span> — CONTROL</div>
+  <div class="logo">PLAY<span>OUT</span> — TITLE BAR</div>
   <div class="sub"><span class="dot" id="netdot"></span><span id="netmsg">Connecting to Firebase…</span></div>
 
-  <!-- ── HOST LOWER THIRD ── -->
+  <!-- ── TITLE BAR ── -->
   <div class="card">
-    <div class="card-title">Host Lower Third <span class="live-pill" id="ltPill">Hidden</span></div>
-    <div class="hostbtns" id="hostBtns"></div>
+    <div class="card-title">Title Bar <span class="live-pill" id="barPill">Hidden</span></div>
     <div class="two">
-      <div><label for="ltName">Name</label><input type="text" id="ltName" placeholder="Jake Storiale"/></div>
-      <div><label for="ltRole">Role / subtitle</label><input type="text" id="ltRole" placeholder="Host — Talkin' Baseball"/></div>
-    </div>
-    <div class="row" style="margin-top:14px;justify-content:space-between;">
-      <label style="margin:0;">Position &amp; size</label>
-      <button class="ghost" id="ltLayoutToggle">Adjust ▾</button>
-    </div>
-    <div id="ltLayout">
-      <div class="hint" style="margin:2px 0 8px;">Drag the box to place it; slider resizes. Moves live while the lower third is on screen.</div>
-      <div class="le-preview" id="ltPreview">
-        <div class="le-ticker"></div>
-        <div class="le-box" id="leLt">LOWER THIRD</div>
+      <div>
+        <label for="dateText">Date</label>
+        <div class="date-field">
+          <input type="text" id="dateText" placeholder="July 7, 2026"/>
+          <button class="ghost" id="todayBtn" title="Insert today's date">Today</button>
+        </div>
       </div>
-      <div class="row" style="margin-top:10px;">
-        <span class="hint" style="min-width:36px;">Size</span>
-        <input type="range" id="ltScale" min="0.5" max="2" step="0.05" value="1" style="flex:1;" />
-        <span class="hint" id="ltScaleVal" style="min-width:42px;text-align:right;">100%</span>
-        <button class="ghost" id="ltReset">Reset</button>
-      </div>
+      <div><label for="titleText">Episode title</label><input type="text" id="titleText" placeholder="Trade Deadline Preview"/></div>
     </div>
-    <div class="row">
-      <button class="ghost" id="ltSaveHost">＋ Save as host</button>
-      <div class="grow"></div>
-      <button class="hide" id="ltHide">HIDE</button>
-      <button id="ltShow">SHOW LOWER THIRD ▸</button>
-    </div>
-  </div>
 
-  <!-- ── TOPIC / QUESTION CARD ── -->
-  <div class="card">
-    <div class="card-title">Topic / Question On Screen <span class="live-pill" id="cardPill">Hidden</span></div>
-    <div class="tag-pick" id="kindPick">
-      <button data-kind="TOPIC">Topic</button>
-      <button data-kind="QUESTION">Question</button>
-    </div>
-    <label for="cardText" style="margin-top:12px;">Text</label>
-    <textarea id="cardText" placeholder="e.g. Who's the AL MVP at the break?"></textarea>
-    <div class="row" style="margin-top:14px;justify-content:space-between;">
-      <label style="margin:0;">Position &amp; size</label>
-      <button class="ghost" id="layoutToggle">Adjust ▾</button>
-    </div>
-    <div id="cardLayout">
-      <div class="hint" style="margin:2px 0 8px;">Drag the box to place it; slider resizes. Moves live on the overlay while the card is on screen.</div>
-      <div class="le-preview" id="lePreview">
-        <div class="le-ticker"></div>
-        <div class="le-box" id="leCard">QUESTION</div>
+    <div class="two" style="margin-top:16px;">
+      <div>
+        <label for="bgHex">Bar color</label>
+        <div class="color-field">
+          <input type="color" id="bgColor" value="#14284D"/>
+          <input type="text" id="bgHex" value="#14284D" maxlength="7" spellcheck="false"/>
+        </div>
       </div>
-      <div class="row" style="margin-top:10px;">
-        <span class="hint" style="min-width:36px;">Size</span>
-        <input type="range" id="cardScale" min="0.5" max="2" step="0.05" value="1" style="flex:1;" />
-        <span class="hint" id="cardScaleVal" style="min-width:42px;text-align:right;">100%</span>
-        <button class="ghost" id="cardReset">Reset</button>
+      <div>
+        <label for="fgHex">Text color</label>
+        <div class="color-field">
+          <input type="color" id="fgColor" value="#FFFFFF"/>
+          <input type="text" id="fgHex" value="#FFFFFF" maxlength="7" spellcheck="false"/>
+        </div>
       </div>
     </div>
+    <div class="row" style="margin-top:8px;justify-content:flex-end;">
+      <button class="ghost" id="colorReset">Reset colors</button>
+    </div>
+
+    <label style="margin-top:16px;">Size</label>
+    <div class="row" style="margin-top:0;">
+      <span class="hint" style="min-width:36px;">Small</span>
+      <input type="range" id="size" min="0.6" max="1.6" step="0.05" value="1" style="flex:1;" />
+      <span class="hint" style="min-width:32px;">Large</span>
+      <span class="hint" id="sizeVal" style="min-width:44px;text-align:right;">100%</span>
+      <button class="ghost" id="sizeReset">Reset</button>
+    </div>
+
+    <label style="margin-top:16px;">Preview</label>
+    <div class="stagewrap" id="stageWrap">
+      <div class="stage" id="stage">
+        <div class="pv-bar"><div class="pv-text" id="pvText"><span class="date"></span><span class="pipe">|</span><span class="title"></span></div></div>
+      </div>
+    </div>
+
     <div class="row">
-      <div class="grow hint">Enter to show • Shift+Enter for a line break.</div>
-      <button class="hide" id="cardHide">HIDE</button>
-      <button class="gold" id="cardShow">SHOW ON SCREEN ▸</button>
+      <div class="grow hint">Shown all-caps as <b>DATE | TITLE</b>. Enter to put it on screen.</div>
+      <button class="hide" id="barHide">HIDE</button>
+      <button class="red" id="barShow">SHOW ON SCREEN ▸</button>
     </div>
   </div>
 
-  <!-- ── TICKER: new message ── -->
+  <!-- ── EXPORT ── -->
   <div class="card">
-    <div class="card-title">Ticker Message <span class="live-pill on" id="tickPill">On air</span></div>
-    <label for="msg">Text</label>
-    <textarea id="msg" placeholder="e.g. New episode drops Friday — subscribe on YouTube…"></textarea>
-    <div class="tag-pick" id="tagPick">
-      <button data-tag="">No tag</button>
-      <button data-tag="UP NEXT">Up Next</button>
-      <button data-tag="SPONSOR">Sponsor</button>
-      <button data-tag="POLL">Poll</button>
-      <button data-tag="BREAKING">Breaking</button>
-    </div>
+    <div class="card-title">Export PNG</div>
+    <label>Transparent PNG with the bar locked to the bottom — full 1920×1080 frame, or just the bar strip.</label>
     <div class="row">
-      <div class="grow hint">Enter to send • it slides in on the ticker — no refresh.</div>
-      <button class="ghost" id="tickToggle">Hide bar</button>
-      <button id="send">SEND TO TICKER ▸</button>
+      <div class="grow hint">Uses the date &amp; title above.</div>
+      <button class="ghost" id="exportTight">Just the bar</button>
+      <button class="red" id="exportFull">EXPORT 1920×1080 ▾</button>
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-title" style="justify-content:space-between;">In Rotation <button class="ghost" id="clear">Clear all</button></div>
-    <ul class="list" id="list"></ul>
-  </div>
-
-  <!-- ── NEWS FEED (single source, on/off) ── -->
-  <div class="card">
-    <div class="card-title">News Feed <span class="live-pill" id="rssPill">Off</span></div>
-    <label for="feedSelect">Source</label>
-    <select id="feedSelect"></select>
-    <input type="text" id="customUrl" placeholder="https://…/feed" style="margin-top:10px;display:none;" />
-    <div class="row">
-      <div class="grow hint" id="rssStatus">Off — headlines won't show on the ticker.</div>
-      <button id="rssToggle">TURN ON ▸</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Ticker Settings</div>
-    <div class="settings">
-      <div class="field"><label>Left banner label (HTML ok)</label><input type="text" id="labelInput" placeholder="THE &lt;span class='red'&gt;SHOW&lt;/span&gt;" /></div>
-      <div class="field"><label>Scroll speed (px/sec)</label><input type="text" id="speedInput" placeholder="90" /></div>
-      <button class="gold" id="saveCfg">SAVE</button>
-    </div>
-    <div class="row" style="margin-top:14px;">
-      <span class="hint" style="min-width:60px;">Ticker</span>
-      <button class="ghost" id="tickPos">Bottom of screen</button>
-      <button class="ghost" id="tickVis">On air</button>
-    </div>
-  </div>
-
+  <!-- ── OBS ── -->
   <div class="card">
     <div class="card-title">OBS Browser Source URL</div>
     <label>Add ONE Browser Source in OBS with this URL (1920×1080). Keep the topic secret so nobody else can post.</label>
-    <div class="urlbox"><input type="text" id="obsUrl" readonly class="grow" /><button class="gold" id="copyUrl">COPY</button></div>
+    <div class="urlbox"><input type="text" id="obsUrl" readonly class="grow" /><button class="red" id="copyUrl">COPY</button></div>
     <div class="settings" style="margin-top:14px;">
       <div class="field"><label>Topic (channel)</label><input type="text" id="topicInput" /></div>
       <button class="ghost" id="saveTopic">USE TOPIC</button>
@@ -229,6 +172,7 @@ button.hide{background:#262a32;color:var(--muted);}
 </div>
 
 <div class="toast" id="toast">Sent</div>
+<canvas id="exportCanvas" width="1920" height="1080" style="display:none;"></canvas>
 
 <script>
 // ── Firebase (shared house project) ──
@@ -247,7 +191,7 @@ function fbKey(topic){ return topic.trim().replace(/[.#$\[\]\/\s]+/g, '-'); }
 function fbRef(topic){ return _db.ref('podcast/' + fbKey(topic) + '/state'); }
 
 const DEFAULT_TOPIC = 'jomboy-podcast';
-const LS_KEY = 'podcast_state';
+const LS_KEY = 'playout_titlebar';
 const $ = (id) => document.getElementById(id);
 const urlParams = new URLSearchParams(location.search);
 let topic = urlParams.get('topic') || localStorage.getItem('podcast_topic') || DEFAULT_TOPIC;
@@ -255,27 +199,16 @@ let topic = urlParams.get('topic') || localStorage.getItem('podcast_topic') || D
 _db.ref('.info/connected').on('value', s => setNet(!!s.val()));
 
 // ── operator's local state ──
-let state = load() || {
-  lt:   { name: '', role: '', show: false },
-  card: { kind: 'TOPIC', text: '', show: false },
-  ticker: {
-    label: "THE <span class='red'>SHOW</span>", speed: 90, mix: false,
-    items: [ { id: 1, text: 'Welcome to the show — new episodes every week', tag: '' } ],
-    feedItems: [],
-  },
-};
-// migrate/guard shape
-state.lt = state.lt || { name:'', role:'', show:false };
-state.card = state.card || { kind:'TOPIC', text:'', show:false };
-state.ticker = state.ticker || { label:"THE <span class='red'>SHOW</span>", speed:90, mix:false, items:[], feedItems:[] };
-if(!Array.isArray(state.ticker.items)) state.ticker.items = [];
-if(!Array.isArray(state.ticker.feedItems)) state.ticker.feedItems = [];
-let seq = state.ticker.items.reduce((m, i) => Math.max(m, i.id + 1), 1);
-let currentTag = '';
+const DEF_BG = '#14284D', DEF_FG = '#FFFFFF', DEF_SIZE = 1;
+let state = load() || { bar: { date:'', title:'', show:false, bg:DEF_BG, fg:DEF_FG, size:DEF_SIZE } };
+state.bar = state.bar || { date:'', title:'', show:false, bg:DEF_BG, fg:DEF_FG, size:DEF_SIZE };
+if(!state.bar.bg) state.bar.bg = DEF_BG;
+if(!state.bar.fg) state.bar.fg = DEF_FG;
+if(!Number.isFinite(state.bar.size)) state.bar.size = DEF_SIZE;
 
 function load(){
   try { const raw = localStorage.getItem(LS_KEY); if(!raw) return null;
-    const s = JSON.parse(raw); if(!s.ticker || !Array.isArray(s.ticker.items)) return null; return s;
+    const s = JSON.parse(raw); if(!s.bar) return null; return s;
   } catch { return null; }
 }
 
@@ -296,131 +229,90 @@ let toastTimer;
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show');
   clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),1300); }
 
-// ── LOWER THIRD ──
-const HOSTS_KEY = 'podcast_hosts';
-let hosts = JSON.parse(localStorage.getItem(HOSTS_KEY) || 'null') || [];
-function renderHosts(){
-  const box = $('hostBtns'); box.innerHTML = '';
-  hosts.forEach((h,i) => {
-    const b = document.createElement('button');
-    b.innerHTML = `<span class="nm"></span><span class="r"></span><span class="x">✕</span>`;
-    b.querySelector('.nm').textContent = h.name;
-    b.querySelector('.r').textContent = h.role || '';
-    b.onclick = (e) => {
-      if(e.target.classList.contains('x')){ hosts.splice(i,1); localStorage.setItem(HOSTS_KEY,JSON.stringify(hosts)); renderHosts(); return; }
-      $('ltName').value = h.name; $('ltRole').value = h.role || '';
-      state.lt = Object.assign({}, state.lt, { name:h.name, role:h.role||'', show:true });
-      publish(); toast('Lower third live ▸');
-    };
-    box.appendChild(b);
-  });
+// ── PREVIEW (WYSIWYG 1920×1080, scaled to fit) ──
+const pvDate = $('pvText').querySelector('.date');
+const pvPipe = $('pvText').querySelector('.pipe');
+const pvTitle = $('pvText').querySelector('.title');
+function fitText(el){ el.style.transform='scale(1)'; const w=el.scrollWidth; if(w>1920) el.style.transform='scale('+(1920/w)+')'; }
+function scaleStage(){ const pv=$('stageWrap').clientWidth/1920; $('stage').style.transform='scale('+pv+')'; }
+const pvBar = document.querySelector('.pv-bar');
+function drawPreview(){
+  const date=$('dateText').value.trim().toUpperCase(), title=$('titleText').value.trim().toUpperCase();
+  pvDate.textContent=date; pvTitle.textContent=title;
+  pvPipe.style.display=(date&&title)?'':'none';
+  pvBar.style.background = state.bar.bg;
+  $('pvText').style.color = state.bar.fg;
+  const size = Number.isFinite(state.bar.size) ? state.bar.size : DEF_SIZE;
+  pvBar.style.height = (84 * size) + 'px';
+  $('pvText').style.fontSize = (48 * size) + 'px';
+  fitText($('pvText'));
 }
-$('ltSaveHost').onclick = () => {
-  const name = $('ltName').value.trim(); if(!name) return;
-  hosts.push({ name, role: $('ltRole').value.trim() });
-  localStorage.setItem(HOSTS_KEY, JSON.stringify(hosts)); renderHosts(); toast('Host saved');
-};
-$('ltShow').onclick = () => {
-  state.lt = Object.assign({}, state.lt, { name:$('ltName').value.trim(), role:$('ltRole').value.trim(), show:true });
-  publish(); toast('Lower third live ▸');
-};
-$('ltHide').onclick = () => { state.lt.show = false; publish(); toast('Lower third hidden'); };
+window.addEventListener('resize', scaleStage);
 
-// ── TOPIC / QUESTION CARD ──
-$('kindPick').querySelectorAll('button').forEach((b,idx)=>{
-  if(idx===0) b.classList.add('on');
-  b.onclick=()=>{ $('kindPick').querySelectorAll('button').forEach(x=>x.classList.remove('on'));
-    b.classList.add('on'); state.card.kind=b.dataset.kind; };
-});
-// ── layout editors (drag + scale) — shared factory; stage = 1920×1080 ──
-const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
-// throttled live publish so the overlay tracks the box as you drag/resize
-let _liveT=null, _livePending=false;
-function publishLive(){
-  if(_liveT){ _livePending=true; return; }
-  publish(); _liveT=setTimeout(()=>{ _liveT=null; if(_livePending){ _livePending=false; publish(); } }, 120);
+// ── SIZE ──
+let _sizeT=null;
+function applySize(v, publishNow){
+  const s = Math.max(0.6, Math.min(1.6, parseFloat(v)||DEF_SIZE));
+  state.bar.size = Math.round(s*100)/100;
+  $('size').value = state.bar.size;
+  $('sizeVal').textContent = Math.round(state.bar.size*100)+'%';
+  drawPreview();
+  if(publishNow) publish();
+  else if(!_sizeT){ publish(); _sizeT=setTimeout(()=>{_sizeT=null;},120); }
 }
-function makeEditor(cfg){
-  const L=cfg.layout, n=k=>Number.isFinite(L()[k])?L()[k]:cfg.def[k];
-  const box=$(cfg.box), prev=$(cfg.preview);
-  function render(){ const pv=prev.clientWidth/1920; if(!pv) return; const s=n('scale');
-    box.style.left=(n('x')*pv)+'px'; box.style.top=(n('y')*pv)+'px';
-    box.style.width=(cfg.w*s*pv)+'px'; box.style.height=(cfg.h*s*pv)+'px'; }
-  function sync(){ $(cfg.scale).value=n('scale'); $(cfg.scaleVal).textContent=Math.round(n('scale')*100)+'%'; render(); }
-  let drag=false,sx,sy,ox,oy;
-  box.addEventListener('pointerdown',e=>{ drag=true;sx=e.clientX;sy=e.clientY;ox=n('x');oy=n('y');box.setPointerCapture(e.pointerId);e.preventDefault(); });
-  box.addEventListener('pointermove',e=>{ if(!drag)return; const pv=prev.clientWidth/1920,s=n('scale'),o=L();
-    o.x=Math.round(clamp(ox+(e.clientX-sx)/pv,0,Math.max(0,1920-cfg.w*s)));
-    o.y=Math.round(clamp(oy+(e.clientY-sy)/pv,0,Math.max(0,1080-cfg.h*s)));
-    render(); publishLive(); });
-  const end=()=>{ if(drag){drag=false;publish();} };
-  box.addEventListener('pointerup',end); box.addEventListener('pointercancel',end);
-  $(cfg.scale).addEventListener('input',e=>{ L().scale=parseFloat(e.target.value); $(cfg.scaleVal).textContent=Math.round(L().scale*100)+'%'; render(); publishLive(); });
-  $(cfg.scale).addEventListener('change',()=>publish());
-  $(cfg.reset).onclick=()=>{ Object.assign(L(),cfg.def); sync(); publish(); toast('Layout reset'); };
-  const key='podcast_open_'+cfg.box; let open=localStorage.getItem(key)!=='0';
-  function applyOpen(){ $(cfg.wrap).style.display=open?'':'none'; $(cfg.toggle).textContent=open?'Hide ▴':'Adjust ▾'; if(open) render(); }
-  $(cfg.toggle).onclick=()=>{ open=!open; localStorage.setItem(key,open?'1':'0'); applyOpen(); };
-  return { render, sync, applyOpen, n };
-}
-const cardEd = makeEditor({ layout:()=>state.card, def:{x:460,y:745,scale:1}, w:1000, h:220,
-  preview:'lePreview', box:'leCard', scale:'cardScale', scaleVal:'cardScaleVal', reset:'cardReset', wrap:'cardLayout', toggle:'layoutToggle' });
-const ltEd = makeEditor({ layout:()=>state.lt, def:{x:60,y:848,scale:1}, w:420, h:150,
-  preview:'ltPreview', box:'leLt', scale:'ltScale', scaleVal:'ltScaleVal', reset:'ltReset', wrap:'ltLayout', toggle:'ltLayoutToggle' });
-function syncEditors(){ cardEd.sync(); ltEd.sync(); }
-function applyEditorsOpen(){ cardEd.applyOpen(); ltEd.applyOpen(); }
-window.addEventListener('resize', ()=>{ cardEd.render(); ltEd.render(); });
+$('size').addEventListener('input', e=>applySize(e.target.value,false));
+$('size').addEventListener('change', ()=>publish());
+$('sizeReset').onclick = () => { applySize(DEF_SIZE,true); toast('Size reset'); };
+function syncSizeInput(){ $('size').value = state.bar.size; $('sizeVal').textContent = Math.round(state.bar.size*100)+'%'; }
 
-function showCard(){
-  const text=$('cardText').value.trim(); if(!text) return;
-  state.card = Object.assign({}, state.card, { kind:state.card.kind||'TOPIC', text, show:true,
-    x:cardEd.n('x'), y:cardEd.n('y'), scale:cardEd.n('scale') });
+// ── COLORS (hex box <-> swatch, kept in sync) ──
+const HEX_RE = /^#?[0-9a-fA-F]{6}$/;
+function normHex(v){ if(!v) return null; v=v.trim(); if(!v.startsWith('#')) v='#'+v; return HEX_RE.test(v) ? v.toUpperCase() : null; }
+let _colorT=null;
+function publishColorsSoon(){ if(_colorT) return; publish(); _colorT=setTimeout(()=>{_colorT=null;},120); }
+function wireColor(which, swatchId, hexId){
+  const key = which; // 'bg' | 'fg'
+  const swatch=$(swatchId), hex=$(hexId);
+  function apply(v, publishNow){
+    const n = normHex(v); if(!n) return false;
+    state.bar[key]=n; swatch.value=n; hex.value=n; drawPreview();
+    if(publishNow) publish(); else publishColorsSoon();
+    return true;
+  }
+  swatch.addEventListener('input', e=>apply(e.target.value,false));
+  swatch.addEventListener('change', ()=>publish());
+  hex.addEventListener('input', e=>apply(e.target.value,false));
+  hex.addEventListener('blur',  e=>{ if(!apply(e.target.value,true)) e.target.value=state.bar[key]; });
+  hex.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); if(!apply(e.target.value,true)) e.target.value=state.bar[key]; }});
+  return { set:v=>apply(v,false) };
+}
+const bgCtl = wireColor('bg','bgColor','bgHex');
+const fgCtl = wireColor('fg','fgColor','fgHex');
+function syncColorInputs(){ bgCtl.set(state.bar.bg); fgCtl.set(state.bar.fg); }
+$('colorReset').onclick = () => { state.bar.bg=DEF_BG; state.bar.fg=DEF_FG; syncColorInputs(); publish(); toast('Colors reset'); };
+
+// ── SHOW / HIDE ──
+function showBar(){
+  state.bar = Object.assign({}, state.bar, {
+    date:$('dateText').value.trim(), title:$('titleText').value.trim(), show:true });
   publish(); toast('On screen ▸');
 }
-$('cardShow').onclick=showCard;
-$('cardHide').onclick=()=>{ state.card.show=false; publish(); toast('Card hidden'); };
-$('cardText').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); showCard(); }});
+$('barShow').onclick = showBar;
+$('barHide').onclick = () => { state.bar.show = false; publish(); toast('Title bar hidden'); };
+['dateText','titleText'].forEach(id => {
+  $(id).addEventListener('input', drawPreview);
+  $(id).addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); showBar(); } });
+});
+$('todayBtn').onclick = () => {
+  const d = new Date();
+  $('dateText').value = d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  drawPreview();
+};
 
-// ── TICKER messages ──
 function render(){
-  const list = $('list'); list.innerHTML='';
-  const feedItems = state.ticker.feedItems || [];
-  if(!state.ticker.items.length && !feedItems.length)
-    list.innerHTML='<div class="empty">Nothing in the ticker yet — send a message above.</div>';
-  state.ticker.items.forEach((item,i)=>{
-    const li=document.createElement('li');
-    const tag=item.tag?`<span class="tg"></span>`:'';
-    li.innerHTML=`<span class="num">${i+1}</span>${tag}<span class="t"></span><button class="del" title="Remove">✕</button>`;
-    li.querySelector('.t').textContent=item.text;
-    if(item.tag) li.querySelector('.tg').textContent=item.tag;
-    li.querySelector('.del').onclick=()=>{ state.ticker.items=state.ticker.items.filter(x=>x.id!==item.id); publish(); };
-    list.appendChild(li);
-  });
-  // Live RSS headlines — read-only, so you can SEE the feed is working
-  if(feedItems.length){
-    const head=document.createElement('li'); head.className='subhead';
-    head.innerHTML=`<span>Live headlines from feeds</span><span class="cnt"></span>`;
-    head.querySelector('.cnt').textContent=feedItems.length;
-    list.appendChild(head);
-    feedItems.forEach(item=>{
-      const li=document.createElement('li'); li.className='feedrow';
-      li.innerHTML=`<span class="tg"></span><span class="t"></span>`;
-      li.querySelector('.tg').textContent=item.tag||'RSS';
-      li.querySelector('.t').textContent=item.text;
-      list.appendChild(li);
-    });
-  }
-  // live pills
-  $('ltPill').className = 'live-pill' + (state.lt.show ? ' on' : ''); $('ltPill').textContent = state.lt.show ? 'On air' : 'Hidden';
-  $('cardPill').className = 'live-pill' + (state.card.show ? ' on-gold' : ''); $('cardPill').textContent = state.card.show ? 'On screen' : 'Hidden';
-  const barOn = state.ticker.show !== false, barTop = state.ticker.pos === 'top';
-  $('tickPill').className = 'live-pill' + (barOn ? ' on' : ''); $('tickPill').textContent = barOn ? 'On air' : 'Hidden';
-  $('tickToggle').textContent = barOn ? 'Hide bar' : 'Show bar';
-  $('tickPos').textContent = barTop ? 'Top of screen' : 'Bottom of screen';
-  $('tickVis').textContent = barOn ? 'On air' : 'Hidden';
-  $('tickVis').style.color = barOn ? '' : 'var(--subtle)';
-  if(document.activeElement!==$('labelInput')) $('labelInput').value=state.ticker.label||'';
-  if(document.activeElement!==$('speedInput')) $('speedInput').value=state.ticker.speed||'';
+  $('barPill').className = 'live-pill' + (state.bar.show ? ' on' : '');
+  $('barPill').textContent = state.bar.show ? 'On screen' : 'Hidden';
+  drawPreview();
   updateUrl();
 }
 function updateUrl(){
@@ -429,153 +321,92 @@ function updateUrl(){
   $('obsUrl').value = u.href;
   if(document.activeElement!==$('topicInput')) $('topicInput').value = topic;
 }
-function send(){
-  const ta=$('msg'); const text=ta.value.trim(); if(!text) return;
-  state.ticker.items.push({ id: seq++, text, tag: currentTag });
-  publish(); ta.value=''; ta.focus(); toast('Sent to ticker ▸');
-}
-$('tagPick').querySelectorAll('button').forEach((b,idx)=>{
-  if(idx===0) b.classList.add('on');
-  b.onclick=()=>{ $('tagPick').querySelectorAll('button').forEach(x=>x.classList.remove('on'));
-    b.classList.add('on'); currentTag=b.dataset.tag; };
-});
-$('send').onclick=send;
-$('msg').addEventListener('keydown',(e)=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); send(); }});
-$('clear').onclick=()=>{ if(confirm('Clear all ticker messages?')){ state.ticker.items=[]; publish(); toast('Cleared'); }};
-$('tickToggle').onclick=()=>{ state.ticker.show = state.ticker.show===false; publish(); };
-$('tickVis').onclick=()=>{ state.ticker.show = state.ticker.show===false; publish(); toast(state.ticker.show===false?'Ticker hidden':'Ticker on air'); };
-$('tickPos').onclick=()=>{ state.ticker.pos = state.ticker.pos==='top' ? 'bottom' : 'top'; publish(); toast('Ticker: '+(state.ticker.pos==='top'?'top':'bottom')); };
-$('saveCfg').onclick=()=>{ state.ticker.label=$('labelInput').value;
-  const sp=parseInt($('speedInput').value,10); if(Number.isFinite(sp)) state.ticker.speed=Math.max(20,Math.min(400,sp));
-  publish(); toast('Settings saved'); };
 $('copyUrl').onclick=()=>{ $('obsUrl').select(); navigator.clipboard.writeText($('obsUrl').value); toast('URL copied'); };
 $('saveTopic').onclick=()=>{ const t=$('topicInput').value.trim(); if(!t) return;
   topic=t; localStorage.setItem('podcast_topic', topic); updateUrl(); publish(); toast('Topic set'); };
 
-// ── NEWS FEED (single source, simple on/off) ──
-const RSS_KEY='podcast_rss', MAXHL=25;
-const PRESETS = [
-  { title: 'MLB Trade Rumors', source: 'MLBTR', url: 'https://www.mlbtraderumors.com/feed' },
-  { title: 'ESPN MLB',         source: 'ESPN',  url: 'https://www.espn.com/espn/rss/mlb/news' },
-  { title: 'CBS Sports MLB',   source: 'CBS',   url: 'https://www.cbssports.com/rss/headlines/mlb/' },
-  { title: 'Google News: MLB', source: 'NEWS',  url: 'https://news.google.com/rss/search?q=MLB&hl=en-US&gl=US&ceid=US:en' },
-];
-let rss = JSON.parse(localStorage.getItem(RSS_KEY) || 'null') || { url:'', source:'', on:false };
-let rssTimer = null;
-state.ticker.mix = true;   // headlines always interleave with your messages
-function hashId(s){ let h=0; for(let i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))|0; } return 'f'+(h>>>0).toString(36); }
-function hostOf(u){ try{ return new URL(u).hostname.replace(/^www\./,''); }catch{ return 'RSS'; } }
+// ── PNG EXPORT — mirrors Playout_Display.html exactly ──
+const BAR = { h:84, fontSize:48, ls:.5, pad:80, pipeGap:24, pipeAlpha:.45 };
+// #RRGGBB + alpha 0..1 → rgba() string
+function rgba(hex, a){ const n=hex.replace('#',''); const r=parseInt(n.slice(0,2),16),g=parseInt(n.slice(2,4),16),b=parseInt(n.slice(4,6),16); return `rgba(${r},${g},${b},${a})`; }
+function segFont(size){ return `800 ${size}px 'Sofia Sans Condensed', sans-serif`; }
+function barSize(){ return Number.isFinite(state.bar.size) ? state.bar.size : DEF_SIZE; }
+function barHeight(){ return BAR.h * barSize(); }
+function measureLine(ctx, date, title, size, pipeGap){
+  ctx.font = segFont(size); if('letterSpacing' in ctx) ctx.letterSpacing = BAR.ls+'px';
+  const dW = date ? ctx.measureText(date).width : 0;
+  const tW = title ? ctx.measureText(title).width : 0;
+  ctx.font = `600 ${size}px 'Sofia Sans Condensed', sans-serif`;
+  const pW = (date && title) ? ctx.measureText('|').width : 0;
+  if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  const gaps = (date && title) ? pipeGap*2 : 0;
+  return { dW, tW, pW, total: dW + gaps + pW, size, pipeGap };
+}
+function drawBar(ctx, W, barTop, date, title){
+  const bg = state.bar.bg || DEF_BG, fg = state.bar.fg || DEF_FG;
+  const size = barSize(), h = BAR.h*size, pad = BAR.pad*size;
+  // bar + subtle top highlight
+  ctx.fillStyle = bg; ctx.fillRect(0, barTop, W, h);
+  ctx.fillStyle = 'rgba(255,255,255,.10)'; ctx.fillRect(0, barTop, W, 2);
+  // fit
+  let m = measureLine(ctx, date, title, BAR.fontSize*size, BAR.pipeGap*size);
+  const avail = W - pad*2;
+  if(m.total > avail){ const f = avail/m.total; m = measureLine(ctx, date, title, BAR.fontSize*size*f, BAR.pipeGap*size*f); }
+  // draw centered
+  const cy = barTop + h/2;
+  let x = (W - m.total)/2;
+  ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  if('letterSpacing' in ctx) ctx.letterSpacing = BAR.ls+'px';
+  if(date){ ctx.font = `700 ${m.size}px 'Sofia Sans Condensed', sans-serif`; ctx.fillStyle = fg;
+    ctx.fillText(date, x, cy); x += m.dW; }
+  if(date && title){ x += m.pipeGap; if('letterSpacing' in ctx) ctx.letterSpacing='0px';
+    ctx.font = `600 ${m.size}px 'Sofia Sans Condensed', sans-serif`;
+    ctx.fillStyle = rgba(fg, BAR.pipeAlpha); ctx.fillText('|', x, cy - 2*size);
+    x += m.pW + m.pipeGap; if('letterSpacing' in ctx) ctx.letterSpacing=BAR.ls+'px'; }
+  if(title){ ctx.font = segFont(m.size); ctx.fillStyle = fg; ctx.fillText(title, x, cy); }
+  if('letterSpacing' in ctx) ctx.letterSpacing='0px';
+}
+function slug(s){ return (s||'title-bar').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40) || 'title-bar'; }
 
-async function proxied(url){
-  // race several public CORS proxies — first one to return valid feed XML wins,
-  // so a slow/dead proxy never stalls the fetch (was serial → 8s penalty per dead proxy).
-  const proxies = [
-    u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
-    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-    u => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
-  ];
-  const tryOne = async (p) => {
-    const ctrl = new AbortController(); const to = setTimeout(() => ctrl.abort(), 8000);
-    try{
-      const r = await fetch(p(url), { signal: ctrl.signal });
-      if(!r.ok) throw new Error('status ' + r.status);
-      const t = await r.text();
-      if(t && /<(item|entry)[\s>]/i.test(t)) return t;
-      throw new Error('no items');
-    } finally { clearTimeout(to); }
-  };
-  return Promise.any(proxies.map(tryOne));   // rejects (AggregateError) only if all proxies fail
-}
-function parseFeed(xml){
-  const doc = new DOMParser().parseFromString(xml, 'text/xml');
-  let nodes = [...doc.querySelectorAll('item')]; if(!nodes.length) nodes = [...doc.querySelectorAll('entry')];
-  return nodes.map(n => {
-    const title = (n.querySelector('title')?.textContent || '').replace(/\s+/g,' ').trim();
-    const linkEl = n.querySelector('link');
-    const link = (linkEl?.getAttribute('href') || linkEl?.textContent || '').trim();
-    const dateStr = n.querySelector('pubDate')?.textContent || n.querySelector('updated')?.textContent || n.querySelector('published')?.textContent || '';
-    const time = Date.parse(dateStr) || 0;
-    return { title, link, time };
-  }).filter(x => x.title);
-}
-function saveRss(){ localStorage.setItem(RSS_KEY, JSON.stringify(rss)); }
-function setRssStatus(msg){ $('rssStatus').textContent = msg; }
-function updateRssUI(){
-  $('rssPill').className   = 'live-pill' + (rss.on ? ' on' : '');
-  $('rssPill').textContent = rss.on ? 'On air' : 'Off';
-  $('rssToggle').textContent = rss.on ? 'TURN OFF' : 'TURN ON ▸';
-  $('rssToggle').className    = rss.on ? 'hide' : '';
-}
-// read the picked source (a preset, or the custom URL box)
-function chosenFeed(){
-  const sel = $('feedSelect');
-  if(sel.value === '__custom__'){
-    let u = $('customUrl').value.trim(); if(u && !/^https?:\/\//i.test(u)) u = 'https://' + u;
-    return { url: u, source: hostOf(u).slice(0,10).toUpperCase() };
+async function exportPng(mode){
+  const date = $('dateText').value.trim().toUpperCase(), title = $('titleText').value.trim().toUpperCase();
+  if(!date && !title){ toast('Add a date or title first'); return; }
+  try { if(document.fonts && document.fonts.ready) await document.fonts.ready; } catch {}
+  const canvas = $('exportCanvas'), ctx = canvas.getContext('2d');
+  if(mode === 'tight'){
+    canvas.width = 1920; canvas.height = Math.round(barHeight());
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    drawBar(ctx, 1920, 0, date, title);
+  } else {
+    canvas.width = 1920; canvas.height = 1080;
+    ctx.clearRect(0,0,1920,1080);
+    drawBar(ctx, 1920, 1080 - barHeight(), date, title);
   }
-  const o = sel.options[sel.selectedIndex];
-  return { url: sel.value, source: (o && o.dataset.source) || hostOf(sel.value).slice(0,10).toUpperCase() };
+  const url = canvas.toDataURL('image/png');
+  const a = document.createElement('a');
+  a.href = url; a.download = 'playout-' + slug(title || date) + (mode==='tight'?'-bar':'') + '.png';
+  document.body.appendChild(a); a.click(); a.remove();
+  toast('PNG exported');
 }
-async function fetchRss(){
-  if(!rss.on || !rss.url) return;
-  setRssStatus('Loading headlines…');
-  try{
-    const items = parseFeed(await proxied(rss.url)).slice(0, MAXHL);
-    state.ticker.feedItems = items.map(it => ({ id: hashId(it.link || it.title), text: it.title, tag: rss.source }));
-    setRssStatus(`${state.ticker.feedItems.length} headlines • updated ${new Date().toLocaleTimeString()}`);
-  }catch(e){ setRssStatus('Couldn’t reach that feed — try another source.'); }
-  publish();
-}
-// the single on/off switch
-function startRss(){
-  if(rssTimer){ clearInterval(rssTimer); rssTimer = null; }
-  updateRssUI();
-  if(rss.on){ fetchRss(); rssTimer = setInterval(fetchRss, 5*60000); }   // auto-refresh every 5 min
-  else { state.ticker.feedItems = []; publish(); setRssStatus('Off — headlines won’t show on the ticker.'); }
-}
-function buildFeedSelect(){
-  const sel = $('feedSelect'); sel.innerHTML = '';
-  PRESETS.forEach(p => { const o = document.createElement('option'); o.value = p.url; o.textContent = p.title; o.dataset.source = p.source; sel.appendChild(o); });
-  const oc = document.createElement('option'); oc.value = '__custom__'; oc.textContent = 'Custom URL…'; sel.appendChild(oc);
-  if(rss.url && PRESETS.some(p => p.url === rss.url)) sel.value = rss.url;
-  else if(rss.url){ sel.value = '__custom__'; $('customUrl').value = rss.url; }
-  $('customUrl').style.display = sel.value === '__custom__' ? 'block' : 'none';
-}
-function pickFromUI(){ const f = chosenFeed(); rss.url = f.url; rss.source = f.source; saveRss(); if(rss.on) fetchRss(); }
-$('feedSelect').onchange = () => { $('customUrl').style.display = $('feedSelect').value === '__custom__' ? 'block' : 'none'; pickFromUI(); };
-$('customUrl').addEventListener('change', pickFromUI);
-$('rssToggle').onclick = () => {
-  if(!rss.on){ const f = chosenFeed(); if(!f.url){ toast('Pick a source first'); return; } rss.url = f.url; rss.source = f.source; }
-  rss.on = !rss.on; saveRss(); startRss(); toast(rss.on ? 'News feed on ▸' : 'News feed off');
-};
+$('exportFull').onclick  = () => exportPng('full');
+$('exportTight').onclick = () => exportPng('tight');
 
 // ── init ──
-renderHosts(); buildFeedSelect(); syncEditors(); applyEditorsOpen();
-{ const f = chosenFeed(); if(!rss.url && f.url){ rss.url = f.url; rss.source = f.source; } }  // default to first preset
-updateRssUI();
-if(rss.on) startRss();
-else setRssStatus('Off — headlines won’t show on the ticker.');
-render();
+$('dateText').value  = state.bar.date  || '';
+$('titleText').value = state.bar.title || '';
+syncColorInputs(); syncSizeInput(); scaleStage(); render();
 
 // A fresh browser must not overwrite what's live on air. Adopt newer remote snapshot, then publish.
-const norm = x => Array.isArray(x) ? x.filter(Boolean) : (x ? Object.values(x).filter(Boolean) : []);
 fbRef(topic).once('value').then(snap => {
   const r = snap.val();
-  if(r && r.ts && r.ts > (state.ts || 0)){
-    if(r.lt) state.lt = r.lt;
-    if(r.card) state.card = r.card;
-    if(r.ticker){
-      state.ticker.items     = norm(r.ticker.items);
-      state.ticker.feedItems = norm(r.ticker.feedItems);
-      if(typeof r.ticker.label === 'string') state.ticker.label = r.ticker.label;
-      if(Number.isFinite(r.ticker.speed)) state.ticker.speed = r.ticker.speed;
-      if(typeof r.ticker.show === 'boolean') state.ticker.show = r.ticker.show;
-      seq = state.ticker.items.reduce((m,i) => Math.max(m, i.id + 1), seq);
-    }
-    $('ltName').value = state.lt.name||''; $('ltRole').value = state.lt.role||'';
-    $('cardText').value = state.card.text||'';
-    syncEditors();
-    render();
+  if(r && r.ts && r.ts > (state.ts || 0) && r.bar){
+    state.bar = Object.assign({ date:'', title:'', show:false, bg:DEF_BG, fg:DEF_FG, size:DEF_SIZE }, r.bar);
+    if(!state.bar.bg) state.bar.bg = DEF_BG;
+    if(!state.bar.fg) state.bar.fg = DEF_FG;
+    if(!Number.isFinite(state.bar.size)) state.bar.size = DEF_SIZE;
+    $('dateText').value  = state.bar.date  || '';
+    $('titleText').value = state.bar.title || '';
+    syncColorInputs(); syncSizeInput(); render();
   }
   publish();
 }).catch(() => publish());
